@@ -66,10 +66,30 @@ class EventInitializer:
         print(f"Fetched {len(all_news)} news items total")
         return all_news
 
+    async def fetch_all_stocks(self) -> List[str]:
+        """
+        获取所有A股股票代码列表
+
+        Returns:
+            股票代码列表
+        """
+        try:
+            print("Fetching all A-share stock codes...")
+            df = ak.stock_zh_a_spot_em()
+            if df is None or df.empty:
+                return []
+
+            codes = df["代码"].tolist()
+            print(f"Found {len(codes)} A-share stocks")
+            return codes
+        except Exception as e:
+            print(f"Error fetching all stocks: {str(e)}")
+            return []
+
     async def fetch_hot_stocks(self, limit: int = 20) -> List[str]:
         """
         获取热门股票代码列表（用于获取新闻）
-        
+
         Returns:
             股票代码列表
         """
@@ -78,7 +98,7 @@ class EventInitializer:
             df = ak.stock_zh_a_spot_em()
             if df is None or df.empty:
                 return []
-            
+
             # 取成交额最大的股票
             df = df.sort_values(by="成交额", ascending=False)
             codes = df["代码"].head(limit).tolist()
@@ -132,14 +152,31 @@ class EventInitializer:
         print(f"Warning: Could not parse date '{date_str}', using current time")
         return datetime.now()
 
-    async def process_and_save_events(self, events_data: List[dict]) -> int:
-        """处理并保存事件到数据库"""
+    async def process_and_save_events(self, events_data: List[dict], days: int = None) -> int:
+        """
+        处理并保存事件到数据库
+
+        Args:
+            events_data: 事件数据列表
+            days: 只保存最近N天的事件，None表示保存全部
+        """
         saved_count = 0
+        cutoff_date = None
+
+        if days is not None:
+            cutoff_date = datetime.now() - timedelta(days=days)
+            print(f"Filtering events newer than {cutoff_date.strftime('%Y-%m-%d %H:%M:%S')}")
 
         for event_data in events_data:
             try:
+                # 检查日期是否在范围内
+                if cutoff_date is not None:
+                    announcement_date = event_data.get("announcement_date")
+                    if announcement_date and announcement_date < cutoff_date:
+                        continue
+
                 event_type = event_data.get("event_type", EventType.OTHER)
-                
+
                 # 根据标题重新分类
                 if event_type == EventType.OTHER:
                     event_type = self._classify_by_title(event_data["title"])
@@ -174,12 +211,14 @@ class EventInitializer:
 
         return saved_count
 
-    async def initialize(self, num_stocks: int = 20):
+    async def initialize(self, num_stocks: int = 20, days: int = None, all_stocks: bool = False):
         """
         初始化事件数据
 
         Args:
-            num_stocks: 获取多少只股票的新闻
+            num_stocks: 获取多少只股票的新闻（当 all_stocks=False 时使用）
+            days: 只保存最近N天的事件，None表示保存全部
+            all_stocks: 是否获取所有A股股票的新闻
         """
         print("=" * 50)
         print("Starting event initialization...")
@@ -192,11 +231,16 @@ class EventInitializer:
         print("Creating database indexes...")
         await db_service.create_indexes()
 
-        # 获取热门股票
+        # 获取股票
         print("\n" + "=" * 50)
-        print(f"Fetching top {num_stocks} hot stocks...")
-        print("=" * 50)
-        stock_codes = await self.fetch_hot_stocks(limit=num_stocks)
+        if all_stocks:
+            print("Fetching all A-share stocks...")
+            print("=" * 50)
+            stock_codes = await self.fetch_all_stocks()
+        else:
+            print(f"Fetching top {num_stocks} hot stocks...")
+            print("=" * 50)
+            stock_codes = await self.fetch_hot_stocks(limit=num_stocks)
         print(f"Got {len(stock_codes)} stock codes")
 
         # 获取并处理新闻
@@ -205,7 +249,7 @@ class EventInitializer:
         print("=" * 50)
         news = await self.fetch_stock_news(stock_codes)
         if news:
-            count = await self.process_and_save_events(news)
+            count = await self.process_and_save_events(news, days=days)
             print(f"Saved {count} news events")
 
         print("\n" + "=" * 50)
@@ -221,12 +265,14 @@ async def main():
     import argparse
 
     parser = argparse.ArgumentParser(description="初始化金融事件数据")
-    parser.add_argument("--stocks", type=int, default=20, help="获取多少只股票的新闻（默认：20）")
+    parser.add_argument("--stocks", type=int, default=20, help="获取多少只股票的新闻（默认：20，使用 --all 时此参数无效）")
+    parser.add_argument("--days", type=int, default=None, help="只保存最近N天的新闻，不指定则保存全部（默认：None）")
+    parser.add_argument("--all", action="store_true", help="获取所有A股股票的新闻（注意：可能需要较长时间）")
 
     args = parser.parse_args()
 
     initializer = EventInitializer()
-    await initializer.initialize(num_stocks=args.stocks)
+    await initializer.initialize(num_stocks=args.stocks, days=args.days, all_stocks=args.all)
 
 
 if __name__ == "__main__":

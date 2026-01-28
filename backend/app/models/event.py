@@ -127,9 +127,9 @@ class EventResponse(BaseModel):
     event_category: str
     event_type: str
     announcement_date: datetime
-    expected_date: Optional[datetime]
-    source: Optional[str]
-    original_url: Optional[str]
-    ai_analysis: Optional[AIAnalysis]
+    expected_date: Optional[datetime] = None
+    source: Optional[str] = None
+    original_url: Optional[str] = None
+    ai_analysis: Optional[AIAnalysis] = None
     created_at: datetime
     updated_at: datetime

@@ -28,10 +28,10 @@
 
     <!-- Card Footer -->
     <div class="card-footer">
-      <div v-if="event.ai_analysis?.impact_score !== null" class="impact-score">
+      <div v-if="event.ai_analysis?.impact_score !== null && event.ai_analysis?.impact_score !== undefined" class="impact-score">
         <span>影响评分:</span>
-        <span :class="getImpactClass(event.ai_analysis.impact_score)">
-          {{ event.ai_analysis.impact_score?.toFixed(1) }}/10
+        <span :class="getImpactClass(event.ai_analysis?.impact_score ?? null)">
+          {{ event.ai_analysis?.impact_score?.toFixed(1) ?? 'N/A' }}/10
         </span>
       </div>
       <el-button
