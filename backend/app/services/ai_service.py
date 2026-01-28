@@ -46,9 +46,10 @@ class AIService:
 
 请只返回JSON，不要包含其他说明文字。"""
 
+        result_text = ""
         try:
             response = self.client.chat.completions.create(
-                model="glm-4.7-flash",
+                model="glm-4-flash",
                 messages=[
                     {"role": "user", "content": prompt},
                 ],
@@ -67,16 +68,31 @@ class AIService:
                 result_text = result_text[:-3]
             result_text = result_text.strip()
 
+            # 尝试提取JSON（处理可能的额外文本）
+            start_idx = result_text.find('{')
+            end_idx = result_text.rfind('}')
+
+            if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
+                result_text = result_text[start_idx:end_idx + 1]
+
             # 解析 JSON
             result = json.loads(result_text)
 
             # 构造返回结果
-            affected_sectors = [
-                AffectedSector(**item) for item in result.get("affected_sectors", [])
-            ]
-            affected_stocks = [
-                AffectedStock(**item) for item in result.get("affected_stocks", [])
-            ]
+            affected_sectors = []
+            for item in result.get("affected_sectors", []):
+                # 如果没有代码，使用名称的拼音或默认值
+                if "code" not in item or not item["code"]:
+                    item["code"] = f"SECTOR_{item['name']}"
+                affected_sectors.append(AffectedSector(**item))
+
+            affected_stocks = []
+            for item in result.get("affected_stocks", []):
+                # 如果没有代码，使用默认值
+                if "code" not in item or not item["code"]:
+                    item["code"] = f"STOCK_{item['name']}"
+                affected_stocks.append(AffectedStock(**item))
+
             affected_materials = [
                 AffectedMaterial(**item) for item in result.get("affected_materials", [])
             ]
@@ -87,8 +103,19 @@ class AIService:
                 "affected_materials": affected_materials,
             }
 
+        except json.JSONDecodeError as e:
+            print(f"JSON decode error in extract_entities: {str(e)}")
+            print(f"Response text: {result_text[:200]}...")  # 显示前200字符
+            # 返回空结果
+            return {
+                "affected_sectors": [],
+                "affected_stocks": [],
+                "affected_materials": [],
+            }
         except Exception as e:
             print(f"Error extracting entities: {str(e)}")
+            if result_text:
+                print(f"Response text: {result_text[:200]}...")
             # 返回空结果
             return {
                 "affected_sectors": [],
@@ -122,9 +149,10 @@ class AIService:
 
 请只返回JSON，不要包含其他说明文字。"""
 
+        result_text = ""
         try:
             response = self.client.chat.completions.create(
-                model="glm-4.7-flash",
+                model="glm-4-flash",
                 messages=[
                     {"role": "user", "content": prompt},
                 ],
@@ -143,6 +171,14 @@ class AIService:
                 result_text = result_text[:-3]
             result_text = result_text.strip()
 
+            # 尝试提取JSON（处理可能的额外文本）
+            # 查找第一个 { 和最后一个 }
+            start_idx = result_text.find('{')
+            end_idx = result_text.rfind('}')
+
+            if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
+                result_text = result_text[start_idx:end_idx + 1]
+
             # 解析 JSON
             result = json.loads(result_text)
 
@@ -151,8 +187,18 @@ class AIService:
                 "impact_reason": result.get("impact_reason", "无法生成打分理由"),
             }
 
+        except json.JSONDecodeError as e:
+            print(f"JSON decode error: {str(e)}")
+            print(f"Response text: {result_text[:200]}...")  # 显示前200字符
+            # 返回默认值
+            return {
+                "impact_score": 5.0,
+                "impact_reason": "AI 分析失败，无法生成打分理由",
+            }
         except Exception as e:
             print(f"Error scoring impact: {str(e)}")
+            if result_text:
+                print(f"Response text: {result_text[:200]}...")
             # 返回默认值
             return {
                 "impact_score": 5.0,

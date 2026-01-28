@@ -45,13 +45,13 @@ class EventType(str, Enum):
 class AffectedStock(BaseModel):
     """影响的股票"""
     name: str = Field(..., description="股票名称")
-    code: str = Field(..., description="股票代码")
+    code: Optional[str] = Field(None, description="股票代码")
 
 
 class AffectedSector(BaseModel):
     """影响的板块"""
     name: str = Field(..., description="板块名称")
-    code: str = Field(..., description="板块代码")
+    code: Optional[str] = Field(None, description="板块代码")
 
 
 class AffectedMaterial(BaseModel):

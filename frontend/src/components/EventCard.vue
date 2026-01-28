@@ -15,15 +15,29 @@
       </div>
     </div>
 
-    <!-- Card Title -->
-    <h3 class="card-title">{{ event.title }}</h3>
-
-    <!-- Card Excerpt -->
-    <p class="card-excerpt">{{ event.content }}</p>
-
-    <!-- AI 分析结果 (可选展示) -->
-    <div v-if="event.ai_analysis?.impact_reason" class="analysis-preview">
-      💡 {{ event.ai_analysis.impact_reason }}
+    <!-- Card Title & Content with Tooltip -->
+    <el-tooltip
+      v-if="event.ai_analysis?.impact_reason"
+      placement="top"
+      :show-after="300"
+      popper-class="analysis-tooltip"
+    >
+      <template #content>
+        <div class="tooltip-content">
+          <span class="tooltip-icon">💡</span>
+          <span class="tooltip-text">{{ event.ai_analysis.impact_reason }}</span>
+        </div>
+      </template>
+      <div class="card-content-wrapper">
+        <h3 class="card-title title-tooltip">
+          {{ event.title }}
+        </h3>
+        <p class="card-excerpt">{{ event.content }}</p>
+      </div>
+    </el-tooltip>
+    <div v-else class="card-content-wrapper">
+      <h3 class="card-title">{{ event.title }}</h3>
+      <p class="card-excerpt">{{ event.content }}</p>
     </div>
 
     <!-- Card Footer -->
@@ -133,6 +147,7 @@ const openOriginalLink = () => {
 .article-card {
   cursor: pointer;
   transition: all var(--transition-base);
+  position: relative;
 }
 
 .card-header {
@@ -170,6 +185,15 @@ const openOriginalLink = () => {
   overflow: hidden;
 }
 
+.title-tooltip {
+  cursor: help;
+  transition: all var(--transition-base);
+}
+
+.card-content-wrapper:hover .title-tooltip {
+  opacity: 0.7;
+}
+
 .card-excerpt {
   font-size: 14px;
   color: var(--text-secondary);
@@ -179,17 +203,6 @@ const openOriginalLink = () => {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-}
-
-.analysis-preview {
-  font-size: 13px;
-  color: var(--text-secondary);
-  background: rgba(255, 77, 77, 0.05);
-  border-left: 3px solid var(--accent-primary);
-  padding: 8px 12px;
-  margin-bottom: 12px;
-  border-radius: 4px;
-  line-height: 1.5;
 }
 
 .card-footer {
@@ -230,5 +243,47 @@ const openOriginalLink = () => {
   font-size: 12px;
   padding: 6px 16px;
   font-weight: 600;
+}
+</style>
+
+<style>
+/* AI 分析 Tooltip 样式 - 限制宽度和样式 */
+.analysis-tooltip {
+  max-width: 400px !important;
+  word-wrap: break-word !important;
+  white-space: normal !important;
+  font-size: 14px !important;
+  line-height: 1.6 !important;
+  padding: 12px 16px !important;
+  background: rgba(30, 30, 40, 0.95) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+/* Tooltip 箭头颜色 */
+.analysis-tooltip .el-tooltip__arrow::before {
+  background: rgba(30, 30, 40, 0.95) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Tooltip 内容样式 */
+.tooltip-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.tooltip-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: #d4a574;
+}
+
+.tooltip-text {
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 400;
 }
 </style>
