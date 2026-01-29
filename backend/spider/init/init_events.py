@@ -11,6 +11,7 @@ sys.path.insert(0, backend_dir)
 
 import akshare as ak
 import asyncio
+import pandas as pd
 from datetime import datetime, timedelta
 from typing import List
 from app.models import EventCreate, EventCategory, EventType
@@ -18,12 +19,24 @@ from app.services.database_service import db_service
 from app.core.database import connect_to_mongo, close_mongo_connection
 
 
+from tqdm import tqdm
+import requests
+
+
+
+
+from spider.common.stock_provider import stock_provider
+
 class EventInitializer:
     """事件初始化器"""
 
     def __init__(self):
         """初始化事件初始化器"""
         pass
+
+    def _fetch_stock_news_safe(self, code: str):
+        """单只股票新闻获取（已移除重试）"""
+        return ak.stock_news_em(symbol=code)
 
     async def fetch_stock_news(self, stock_codes: List[str]) -> List[dict]:
         """
@@ -37,10 +50,24 @@ class EventInitializer:
         """
         all_news = []
         
-        for code in stock_codes:
+        # 使用 tqdm 显示进度条
+        pbar = tqdm(stock_codes, desc="Fetching news", unit="stock")
+        
+        for code in pbar:
             try:
-                print(f"Fetching news for stock {code}...")
-                df = ak.stock_news_em(symbol=code)
+                # 更新进度条描述
+                pbar.set_description(f"Fetching {code}")
+                
+                # 获取数据
+                try:
+                    df = self._fetch_stock_news_safe(code)
+                except Exception as e:
+                    # 重试后仍然失败，跳过该股票但不要中断整个流程
+                    if not isinstance(e, requests.exceptions.ProxyError):
+                        # 只有非代理错误才打印详细日志，避免刷屏
+                        # 或者可以选择记录到日志文件
+                        pass
+                    continue
                 
                 if df is None or df.empty:
                     continue
@@ -57,16 +84,22 @@ class EventInitializer:
                     all_news.append(news_item)
                 
                 # 避免请求过快
-                await asyncio.sleep(0.5)
+                # await asyncio.sleep(0.1) 
                 
             except Exception as e:
-                print(f"Error fetching news for {code}: {str(e)}")
+                # pbar.write(f"Error fetching news for {code}: {str(e)}")
                 continue
         
-        print(f"Fetched {len(all_news)} news items total")
+        print(f"\nFetched {len(all_news)} news items total")
         return all_news
 
+    def _fetch_all_stocks_safe(self):
+         """所有股票列表获取（已移除重试）"""
+         # 使用自定义方法替代 akshare
+         return stock_provider.get_stock_zh_a_spot_em()
+
     async def fetch_all_stocks(self) -> List[str]:
+
         """
         获取所有A股股票代码列表
 
@@ -75,7 +108,9 @@ class EventInitializer:
         """
         try:
             print("Fetching all A-share stock codes...")
-            df = ak.stock_zh_a_spot_em()
+            # 获取数据
+            df = self._fetch_all_stocks_safe()
+            
             if df is None or df.empty:
                 return []
 
@@ -83,7 +118,7 @@ class EventInitializer:
             print(f"Found {len(codes)} A-share stocks")
             return codes
         except Exception as e:
-            print(f"Error fetching all stocks: {str(e)}")
+            print(f"Error fetching all stocks after retries: {str(e)}")
             return []
 
     async def fetch_hot_stocks(self, limit: int = 20) -> List[str]:
@@ -95,7 +130,7 @@ class EventInitializer:
         """
         try:
             # 获取涨幅榜前N只股票
-            df = ak.stock_zh_a_spot_em()
+            df = self._fetch_all_stocks_safe()
             if df is None or df.empty:
                 return []
 
@@ -149,7 +184,7 @@ class EventInitializer:
             except (ValueError, TypeError):
                 continue
 
-        print(f"Warning: Could not parse date '{date_str}', using current time")
+        # print(f"Warning: Could not parse date '{date_str}', using current time")
         return datetime.now()
 
     async def process_and_save_events(self, events_data: List[dict], days: int = None) -> int:
@@ -167,7 +202,10 @@ class EventInitializer:
             cutoff_date = datetime.now() - timedelta(days=days)
             print(f"Filtering events newer than {cutoff_date.strftime('%Y-%m-%d %H:%M:%S')}")
 
-        for event_data in events_data:
+        # 同样给数据库保存加个进度条
+        pbar = tqdm(events_data, desc="Saving events", unit="event")
+        
+        for event_data in pbar:
             try:
                 # 检查日期是否在范围内
                 if cutoff_date is not None:
@@ -201,12 +239,13 @@ class EventInitializer:
                 # 保存到数据库
                 await db_service.create_event(event_create)
                 saved_count += 1
-
+                
+                # 偶尔更新一下描述
                 if saved_count % 100 == 0:
-                    print(f"Saved {saved_count} events...")
+                    pbar.set_description(f"Saved {saved_count} events")
 
             except Exception as e:
-                print(f"Error saving event: {str(e)}")
+                # print(f"Error saving event: {str(e)}")
                 continue
 
         return saved_count
@@ -232,32 +271,41 @@ class EventInitializer:
         await db_service.create_indexes()
 
         # 获取股票
-        print("\n" + "=" * 50)
-        if all_stocks:
-            print("Fetching all A-share stocks...")
+        try:
+            print("\n" + "=" * 50)
+            if all_stocks:
+                # print("Fetching all A-share stocks...")
+                # print("=" * 50)
+                stock_codes = await self.fetch_all_stocks()
+            else:
+                print(f"Fetching top {num_stocks} hot stocks...")
+                print("=" * 50)
+                stock_codes = await self.fetch_hot_stocks(limit=num_stocks)
+            
+            if not stock_codes:
+                 print("No stocks found or network error occurred.")
+                 return
+
+            print(f"Got {len(stock_codes)} stock codes")
+
+            # 获取并处理新闻
+            print("\n" + "=" * 50)
+            print("Fetching stock news...")
             print("=" * 50)
-            stock_codes = await self.fetch_all_stocks()
-        else:
-            print(f"Fetching top {num_stocks} hot stocks...")
+            news = await self.fetch_stock_news(stock_codes)
+            
+            if news:
+                await self.process_and_save_events(news, days=days)
+                
+        except Exception as e:
+             print(f"An unexpected error occurred during initialization: {str(e)}")
+        finally:
+            print("\n" + "=" * 50)
+            print("Event initialization completed!")
             print("=" * 50)
-            stock_codes = await self.fetch_hot_stocks(limit=num_stocks)
-        print(f"Got {len(stock_codes)} stock codes")
 
-        # 获取并处理新闻
-        print("\n" + "=" * 50)
-        print("Fetching stock news...")
-        print("=" * 50)
-        news = await self.fetch_stock_news(stock_codes)
-        if news:
-            count = await self.process_and_save_events(news, days=days)
-            print(f"Saved {count} news events")
-
-        print("\n" + "=" * 50)
-        print("Event initialization completed!")
-        print("=" * 50)
-
-        # 关闭数据库连接
-        await close_mongo_connection()
+            # 关闭数据库连接
+            await close_mongo_connection()
 
 
 async def main():
@@ -276,4 +324,9 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        if sys.platform == 'win32':
+             asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("\nProcess interrupted by user.")
