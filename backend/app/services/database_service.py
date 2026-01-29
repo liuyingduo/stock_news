@@ -146,6 +146,15 @@ class DatabaseService:
         except Exception:
             return False
 
+    async def delete_all_events(self) -> int:
+        """删除所有事件"""
+        try:
+            result = await self._get_db().events.delete_many({})
+            return result.deleted_count
+        except Exception as e:
+            print(f"Error deleting all events: {str(e)}")
+            return 0
+
     async def get_events_by_sector(self, sector_code: str, limit: int = 50) -> List[Dict[str, Any]]:
         """获取影响指定板块的事件"""
         query = {"ai_analysis.affected_sectors.code": sector_code}

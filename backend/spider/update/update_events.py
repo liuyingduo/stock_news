@@ -18,6 +18,11 @@ from app.services.database_service import db_service
 from app.core.database import connect_to_mongo, close_mongo_connection
 
 
+from spider.common.stock_provider import stock_provider
+from tqdm import tqdm
+import requests
+import concurrent.futures
+
 class EventUpdater:
     """事件更新器"""
 
@@ -25,48 +30,97 @@ class EventUpdater:
         """初始化事件更新器"""
         pass
 
+    def _fetch_stock_news_safe(self, code: str):
+        """单只股票新闻获取"""
+        return ak.stock_news_em(symbol=code)
+
+    def _process_single_stock(self, code: str) -> List[dict]:
+        """处理单个股票的新闻获取"""
+        try:
+            df = self._fetch_stock_news_safe(code)
+            if df is None or df.empty:
+                return []
+            
+            news_items = []
+            for _, row in df.iterrows():
+                news_item = {
+                    "title": row.get("新闻标题", ""),
+                    "content": row.get("新闻内容", row.get("新闻标题", "")),
+                    "announcement_date": self._parse_date(row.get("发布时间", str(datetime.now()))),
+                    "source": row.get("文章来源", "东方财富网"),
+                    "original_url": row.get("新闻链接", ""),
+                    "event_type": EventType.OTHER,
+                }
+                news_items.append(news_item)
+            return news_items
+        except Exception as e:
+             # 只有非代理错误才打印详细日志
+            if not isinstance(e, requests.exceptions.ProxyError):
+                 pass
+            return []
+
     async def fetch_stock_news(self, stock_codes: List[str]) -> List[dict]:
-        """获取指定股票的新闻"""
+        """
+        获取指定股票的新闻 (并发版)
+
+        Args:
+            stock_codes: 股票代码列表
+
+        Returns:
+            新闻列表
+        """
         all_news = []
         
-        for code in stock_codes:
-            try:
-                print(f"Fetching news for stock {code}...")
-                df = ak.stock_news_em(symbol=code)
-                
-                if df is None or df.empty:
-                    continue
-                
-                for _, row in df.iterrows():
-                    news_item = {
-                        "title": row.get("新闻标题", ""),
-                        "content": row.get("新闻内容", row.get("新闻标题", "")),
-                        "announcement_date": self._parse_date(row.get("发布时间", str(datetime.now()))),
-                        "source": row.get("文章来源", "东方财富网"),
-                        "original_url": row.get("新闻链接", ""),
-                        "event_type": EventType.OTHER,
-                    }
-                    all_news.append(news_item)
-                
-                await asyncio.sleep(0.5)
-                
-            except Exception as e:
-                print(f"Error fetching news for {code}: {str(e)}")
-                continue
+        # 限制并发数
+        MAX_WORKERS = 10
         
-        print(f"Fetched {len(all_news)} news items total")
+        print(f"Fetching news for {len(stock_codes)} stocks with {MAX_WORKERS} workers...")
+        
+        # 使用 tqdm 显示进度条
+        pbar = tqdm(total=len(stock_codes), desc="Fetching news", unit="stock")
+        
+        with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+            # 提交所有任务
+            future_to_code = {executor.submit(self._process_single_stock, code): code for code in stock_codes}
+            
+            for future in concurrent.futures.as_completed(future_to_code):
+                try:
+                    news_items = future.result()
+                    if news_items:
+                        all_news.extend(news_items)
+                except Exception as e:
+                    pass
+                finally:
+                    pbar.update(1)
+        
+        pbar.close()
+        print(f"\nFetched {len(all_news)} news items total")
         return all_news
 
     async def fetch_all_stocks(self) -> List[str]:
-        """获取所有A股股票代码列表"""
+        """
+        获取所有A股股票代码列表
+        优先从数据库获取，无需频繁请求API
+        """
         try:
             print("Fetching all A-share stock codes...")
-            df = ak.stock_zh_a_spot_em()
+            
+            # 1. 尝试从数据库获取
+            stocks = await db_service.get_all_stocks()
+            if stocks:
+                print(f"Found {len(stocks)} stocks in database. Using cached data.")
+                return [s["code"] for s in stocks]
+
+            # 2. 如果数据库为空，才去请求API
+            print("Database is empty. Fetching from API...")
+            # 使用自定义 stock_provider
+            df = stock_provider.get_stock_zh_a_spot_em()
+            
             if df is None or df.empty:
                 return []
 
             codes = df["代码"].tolist()
-            print(f"Found {len(codes)} A-share stocks")
+            print(f"Found {len(codes)} A-share stocks from API")
             return codes
         except Exception as e:
             print(f"Error fetching all stocks: {str(e)}")
@@ -75,9 +129,12 @@ class EventUpdater:
     async def fetch_hot_stocks(self, limit: int = 10) -> List[str]:
         """获取热门股票代码列表"""
         try:
-            df = ak.stock_zh_a_spot_em()
+            # 使用自定义 stock_provider
+            df = stock_provider.get_stock_zh_a_spot_em()
+            
             if df is None or df.empty:
                 return []
+                
             df = df.sort_values(by="成交额", ascending=False)
             return df["代码"].head(limit).tolist()
         except Exception as e:
@@ -143,8 +200,11 @@ class EventUpdater:
         if days is not None:
             cutoff_date = datetime.now() - timedelta(days=days)
             print(f"Filtering events newer than {cutoff_date.strftime('%Y-%m-%d %H:%M:%S')}")
+        
+        # 使用 tqdm 显示进度条
+        pbar = tqdm(events_data, desc="Saving events", unit="event")
 
-        for event_data in events_data:
+        for event_data in pbar:
             try:
                 # 检查日期是否在范围内
                 if cutoff_date is not None:
@@ -162,7 +222,7 @@ class EventUpdater:
                 if event_type in [EventType.MA, EventType.RESTRUCTURING, EventType.MANAGEMENT_CHANGE]:
                     event_category = EventCategory.SPECIAL_SITUATION
                 else:
-                    event_category = EventCategory.CORE_DRIVER
+                    event_category = EventCategory.SENTIMENT_FLOWS
 
                 event_create = EventCreate(
                     title=event_data["title"],
@@ -176,10 +236,14 @@ class EventUpdater:
 
                 await db_service.create_event(event_create)
                 saved_count += 1
-                print(f"Saved new event: {event_data['title'][:50]}...")
+                # print(f"Saved new event: {event_data['title'][:50]}...")
+                
+                # 更新进度条描述
+                if saved_count % 10 == 0:
+                    pbar.set_description(f"Saved {saved_count}, Skipped {skipped_count}")
 
             except Exception as e:
-                print(f"Error saving event: {str(e)}")
+                # print(f"Error saving event: {str(e)}")
                 continue
 
         print(f"\nSummary: Saved {saved_count} new events, skipped {skipped_count} existing events")

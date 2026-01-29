@@ -38,9 +38,34 @@ class EventInitializer:
         """单只股票新闻获取（已移除重试）"""
         return ak.stock_news_em(symbol=code)
 
+    def _process_single_stock(self, code: str) -> List[dict]:
+        """处理单个股票的新闻获取"""
+        try:
+            df = self._fetch_stock_news_safe(code)
+            if df is None or df.empty:
+                return []
+            
+            news_items = []
+            for _, row in df.iterrows():
+                news_item = {
+                    "title": row.get("新闻标题", ""),
+                    "content": row.get("新闻内容", row.get("新闻标题", "")),
+                    "announcement_date": self._parse_date(row.get("发布时间", str(datetime.now()))),
+                    "source": row.get("文章来源", "东方财富网"),
+                    "original_url": row.get("新闻链接", ""),
+                    "event_type": EventType.OTHER,
+                }
+                news_items.append(news_item)
+            return news_items
+        except Exception as e:
+            # 只有非代理错误才打印详细日志
+            if not isinstance(e, requests.exceptions.ProxyError):
+                 pass
+            return []
+
     async def fetch_stock_news(self, stock_codes: List[str]) -> List[dict]:
         """
-        获取指定股票的新闻
+        获取指定股票的新闻 (并发版)
 
         Args:
             stock_codes: 股票代码列表
@@ -49,47 +74,33 @@ class EventInitializer:
             新闻列表
         """
         all_news = []
+        import concurrent.futures
+        
+        # 限制并发数，防止被封IP
+        MAX_WORKERS = 10
+        
+        print(f"Fetching news for {len(stock_codes)} stocks with {MAX_WORKERS} workers...")
         
         # 使用 tqdm 显示进度条
-        pbar = tqdm(stock_codes, desc="Fetching news", unit="stock")
+        pbar = tqdm(total=len(stock_codes), desc="Fetching news", unit="stock")
         
-        for code in pbar:
-            try:
-                # 更新进度条描述
-                pbar.set_description(f"Fetching {code}")
-                
-                # 获取数据
+        with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+            # 提交所有任务
+            future_to_code = {executor.submit(self._process_single_stock, code): code for code in stock_codes}
+            
+            for future in concurrent.futures.as_completed(future_to_code):
                 try:
-                    df = self._fetch_stock_news_safe(code)
+                    news_items = future.result()
+                    if news_items:
+                        all_news.extend(news_items)
                 except Exception as e:
-                    # 重试后仍然失败，跳过该股票但不要中断整个流程
-                    if not isinstance(e, requests.exceptions.ProxyError):
-                        # 只有非代理错误才打印详细日志，避免刷屏
-                        # 或者可以选择记录到日志文件
-                        pass
-                    continue
-                
-                if df is None or df.empty:
-                    continue
-                
-                for _, row in df.iterrows():
-                    news_item = {
-                        "title": row.get("新闻标题", ""),
-                        "content": row.get("新闻内容", row.get("新闻标题", "")),
-                        "announcement_date": self._parse_date(row.get("发布时间", str(datetime.now()))),
-                        "source": row.get("文章来源", "东方财富网"),
-                        "original_url": row.get("新闻链接", ""),
-                        "event_type": EventType.OTHER,
-                    }
-                    all_news.append(news_item)
-                
-                # 避免请求过快
-                # await asyncio.sleep(0.1) 
-                
-            except Exception as e:
-                # pbar.write(f"Error fetching news for {code}: {str(e)}")
-                continue
+                    # code = future_to_code[future]
+                    # print(f"Error processing stock {code}: {e}")
+                    pass
+                finally:
+                    pbar.update(1)
         
+        pbar.close()
         print(f"\nFetched {len(all_news)} news items total")
         return all_news
 
@@ -106,19 +117,50 @@ class EventInitializer:
         Returns:
             股票代码列表
         """
+    async def fetch_all_stocks(self) -> List[str]:
+        """
+        获取所有A股股票代码列表
+        优先从数据库获取，如果为空则从接口获取并保存
+        """
         try:
             print("Fetching all A-share stock codes...")
-            # 获取数据
+            
+            # 1. 尝试先从API获取最新列表（初始化时通常需要最新的）
             df = self._fetch_all_stocks_safe()
             
-            if df is None or df.empty:
-                return []
+            if df is not None and not df.empty:
+                print(f"Fetched {len(df)} stocks from API. Saving to database...")
+                # 保存到数据库
+                saved_count = 0
+                for _, row in tqdm(df.iterrows(), total=len(df), desc="Saving stocks"):
+                    try:
+                        await db_service.create_or_update_stock(
+                            code=str(row["代码"]),
+                            name=str(row["名称"]),
+                            price=float(row["最新价"]) if pd.notna(row["最新价"]) else 0.0,
+                            volume=float(row["成交额"]) if pd.notna(row["成交额"]) else 0.0
+                        )
+                        saved_count += 1
+                    except Exception:
+                        continue
+                print(f"Saved {saved_count} stocks to database.")
+                return df["代码"].tolist()
 
-            codes = df["代码"].tolist()
-            print(f"Found {len(codes)} A-share stocks")
-            return codes
+            # 2. 如果API失败，尝试从数据库获取作为备选
+            print("API fetch failed or empty. Trying to load from database...")
+            stocks = await db_service.get_all_stocks()
+            if stocks:
+                print(f"Found {len(stocks)} stocks in database.")
+                return [s["code"] for s in stocks]
+            
+            return []
+            
         except Exception as e:
-            print(f"Error fetching all stocks after retries: {str(e)}")
+            print(f"Error fetching all stocks: {str(e)}")
+            # 出错时尝试读库
+            stocks = await db_service.get_all_stocks()
+            if stocks:
+                 return [s["code"] for s in stocks]
             return []
 
     async def fetch_hot_stocks(self, limit: int = 20) -> List[str]:
@@ -223,7 +265,7 @@ class EventInitializer:
                 if event_type in [EventType.MA, EventType.RESTRUCTURING, EventType.MANAGEMENT_CHANGE]:
                     event_category = EventCategory.SPECIAL_SITUATION
                 else:
-                    event_category = EventCategory.CORE_DRIVER
+                    event_category = EventCategory.SENTIMENT_FLOWS
 
                 # 创建事件
                 event_create = EventCreate(
@@ -269,6 +311,11 @@ class EventInitializer:
         # 创建数据库索引
         print("Creating database indexes...")
         await db_service.create_indexes()
+
+        # 清空已有数据
+        print("Clearing existing events...")
+        deleted_count = await db_service.delete_all_events()
+        print(f"Deleted {deleted_count} existing events.")
 
         # 获取股票
         try:
