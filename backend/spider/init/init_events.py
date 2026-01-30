@@ -16,7 +16,7 @@ from typing import List, Optional
 from app.models import EventCreate, EventCategory, EventType
 from app.services.database_service import db_service
 from app.core.database import connect_to_mongo, close_mongo_connection
-from spider.common.notice_fetcher import fetch_notice_content
+from spider.common.notice_fetcher import fetch_notices_batch
 
 from tqdm import tqdm
 
@@ -62,6 +62,7 @@ class EventInitializer:
 
         Args:
             days: 获取最近N天的公告
+            fetch_content: 是否抓取公告详情页内容
 
         Returns:
             公告列表
@@ -76,10 +77,9 @@ class EventInitializer:
             dates.append(date.strftime("%Y%m%d"))
 
         print(f"Fetching notices for {len(dates)} days, {len(notice_types)} types...")
-        if fetch_content:
-            print("Note: Fetching full content from detail pages (this may take longer)")
 
-        for notice_type in tqdm(notice_types, desc="Notice types"):
+        # 第一步：收集所有公告基本信息
+        for notice_type in tqdm(notice_types, desc="Fetching notice list"):
             event_type = self.notice_type_mapping.get(notice_type, EventType.OTHER)
 
             for date_str in dates:
@@ -92,17 +92,9 @@ class EventInitializer:
                         title = row.get("公告标题", "")
                         url = row.get("网址", "")
                         
-                        # 尝试获取完整内容
-                        if fetch_content and url:
-                            content = fetch_notice_content(url)
-                            if not content:
-                                content = title  # 如果获取失败，使用标题
-                        else:
-                            content = title
-                        
                         notice = {
                             "title": title,
-                            "content": content,
+                            "content": title,  # 先用标题，稍后批量抓取
                             "stock_code": row.get("代码", ""),
                             "stock_name": row.get("名称", ""),
                             "announcement_date": self._parse_date(row.get("公告日期", str(datetime.now()))),
@@ -114,10 +106,16 @@ class EventInitializer:
                         all_notices.append(notice)
 
                 except Exception as e:
-                    # 某些日期可能没有数据，忽略错误
                     continue
 
-        print(f"Fetched {len(all_notices)} notices total")
+        print(f"Fetched {len(all_notices)} notices")
+        
+        # 第二步：并发批量抓取详情页内容
+        if fetch_content and all_notices:
+            print(f"Fetching content from detail pages (concurrent, max 20 workers)...")
+            all_notices = fetch_notices_batch(all_notices, max_workers=20)
+            print("Content fetching completed")
+
         return all_notices
 
     async def fetch_cls_telegraph(self) -> List[dict]:
