@@ -5,7 +5,9 @@ import sys
 import os
 import asyncio
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, List, Tuple
+from concurrent.futures import ThreadPoolExecutor
+import time
 
 # 添加 backend 目录到 Python 路径
 backend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -23,6 +25,11 @@ class EventAnalyzer:
     def __init__(self):
         """初始化分析器"""
         self.ai_service = None
+        self.executor = ThreadPoolExecutor(max_workers=10)  # 用于执行同步的 AI 调用
+        self.completed_count = 0
+        self.failed_count = 0
+        self.start_time = None
+        self.lock = asyncio.Lock()  # 用于线程安全的计数器更新
 
     async def get_pending_events(self, limit: int = 1000, days: Optional[int] = None,
                                  category: Optional[str] = None,
@@ -78,9 +85,9 @@ class EventAnalyzer:
 
         return pending_events
 
-    async def analyze_event(self, event_data: dict, index: int, total: int) -> bool:
+    async def analyze_event(self, event_data: dict, index: int, total: int) -> Tuple[bool, Optional[dict], Optional[dict]]:
         """
-        分析单个事件
+        分析单个事件（不立即更新数据库）
 
         Args:
             event_data: 事件数据
@@ -88,50 +95,23 @@ class EventAnalyzer:
             total: 总数
 
         Returns:
-            是否分析成功
+            (是否成功, 事件数据, AI分析结果)
         """
         try:
-            print(f"[{index}/{total}] Analyzing: {event_data['title'][:60]}...")
-
             # 调用 AI 服务进行分析
             ai_analysis = await self.ai_service.analyze_event(
                 event_data["title"],
                 event_data["content"]
             )
 
-            # 更新数据库
-            event_id = event_data["id"]
-            await db_service.update_event(event_id, EventUpdate(ai_analysis=ai_analysis))
-
-            # 更新关联的板块和股票
-            if ai_analysis.affected_sectors:
-                for sector in ai_analysis.affected_sectors:
-                    await db_service.create_or_update_sector(
-                        name=sector.name,
-                        code=sector.code if sector.code else f"SECTOR_{sector.name}",
-                    )
-
-            if ai_analysis.affected_stocks:
-                for stock in ai_analysis.affected_stocks:
-                    await db_service.create_or_update_stock(
-                        name=stock.name,
-                        code=stock.code if stock.code else f"STOCK_{stock.name}",
-                    )
-
-            # 显示分析结果摘要
-            score = ai_analysis.impact_score if ai_analysis.impact_score else 0
-            reason = ai_analysis.impact_reason[:50] if ai_analysis.impact_reason else "No reason"
-            print(f"  ✓ Score: {score}/10 | Reason: {reason}...")
-
-            return True
+            return True, event_data, ai_analysis
 
         except Exception as e:
-            print(f"  ✗ Error: {str(e)}")
-            return False
+            return False, event_data, None
 
     async def analyze(self, limit: int = 1000, days: Optional[int] = None,
                      category: Optional[str] = None, event_type: Optional[str] = None,
-                     concurrency: int = 5):
+                     concurrency: int = 20):
         """
         批量分析事件
 
@@ -140,7 +120,7 @@ class EventAnalyzer:
             days: 只分析最近N天的事件
             category: 按事件类别筛选
             event_type: 按事件类型筛选
-            concurrency: 并发分析数量（默认：5）
+            concurrency: 并发分析数量（默认：20，增加可提高速度但会占用更多API资源）
         """
         print("=" * 60)
         print("Event AI Analysis")
@@ -173,12 +153,36 @@ class EventAnalyzer:
         print(f"Found {len(pending_events)} events pending analysis")
         print(f"Concurrency level: {concurrency}\n")
 
+        # 记录开始时间
+        self.start_time = time.time()
+        self.completed_count = 0
+        self.failed_count = 0
+
         # 使用信号量控制并发数量
         semaphore = asyncio.Semaphore(concurrency)
 
         async def analyze_with_semaphore(event_data: dict, index: int):
             async with semaphore:
-                return await self.analyze_event(event_data, index, len(pending_events))
+                success, event, analysis = await self.analyze_event(event_data, index, len(pending_events))
+
+                # 实时更新进度
+                async with self.lock:
+                    if success:
+                        self.completed_count += 1
+                    else:
+                        self.failed_count += 1
+
+                    total_processed = self.completed_count + self.failed_count
+                    elapsed = time.time() - self.start_time
+                    rate = total_processed / elapsed if elapsed > 0 else 0
+                    eta = (len(pending_events) - total_processed) / rate if rate > 0 else 0
+
+                    # 显示进度
+                    print(f"\r[{total_processed}/{len(pending_events)}] "
+                          f"✓{self.completed_count} ✗{self.failed_count} | "
+                          f"Rate: {rate:.1f}/s | ETA: {eta:.0f}s", end="", flush=True)
+
+                return success, event, analysis
 
         # 创建所有任务
         tasks = [
@@ -189,9 +193,58 @@ class EventAnalyzer:
         # 并发执行所有任务
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
+        print()  # 换行
+
+        # 批量更新数据库
+        print("Updating database...")
+        bulk_update_tasks = []
+        sectors_to_update = set()
+        stocks_to_update = set()
+
+        for result in results:
+            if isinstance(result, Exception):
+                continue
+
+            success, event, analysis = result
+            if not success or not analysis:
+                continue
+
+            # 收集更新任务
+            event_id = event["id"]
+            bulk_update_tasks.append(
+                db_service.update_event(event_id, EventUpdate(ai_analysis=analysis))
+            )
+
+            # 收集板块和股票（去重）
+            if analysis.affected_sectors:
+                for sector in analysis.affected_sectors:
+                    sectors_to_update.add((sector.name, sector.code if sector.code else f"SECTOR_{sector.name}"))
+
+            if analysis.affected_stocks:
+                for stock in analysis.affected_stocks:
+                    stocks_to_update.add((stock.name, stock.code if stock.code else f"STOCK_{stock.name}"))
+
+        # 批量执行事件更新
+        if bulk_update_tasks:
+            # 使用批量并发更新，但限制并发数避免数据库压力过大
+            batch_semaphore = asyncio.Semaphore(50)
+            async def update_with_semaphore(task):
+                async with batch_semaphore:
+                    return await task
+
+            batch_tasks = [update_with_semaphore(t) for t in bulk_update_tasks]
+            await asyncio.gather(*batch_tasks, return_exceptions=True)
+
+        # 批量更新板块和股票
+        for sector_name, sector_code in sectors_to_update:
+            await db_service.create_or_update_sector(name=sector_name, code=sector_code)
+
+        for stock_name, stock_code in stocks_to_update:
+            await db_service.create_or_update_stock(name=stock_name, code=stock_code)
+
         # 统计结果
-        success_count = sum(1 for r in results if r is True)
-        fail_count = sum(1 for r in results if r is False or isinstance(r, Exception))
+        success_count = self.completed_count
+        fail_count = self.failed_count
 
         # 显示统计信息
         print("\n" + "=" * 60)
@@ -217,8 +270,8 @@ async def main():
                        choices=["core_driver", "special_situation", "industrial_chain", "sentiment_flows", "macro_geopolitics"],
                        help="按事件类别筛选")
     parser.add_argument("--event-type", type=str, default=None, help="按事件类型筛选")
-    parser.add_argument("--concurrency", "-c", type=int, default=5,
-                       help="并发分析数量（默认：5，增加可提高速度但会占用更多API资源）")
+    parser.add_argument("--concurrency", "-c", type=int, default=20,
+                       help="并发分析数量（默认：20，增加可提高速度但会占用更多API资源）")
 
     args = parser.parse_args()
 
