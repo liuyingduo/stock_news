@@ -15,33 +15,63 @@ class AIService:
             raise ValueError("ZHIPU_API_KEY is not configured")
         self.client = ZhipuAI(api_key=settings.zhipu_api_key)
 
-    async def extract_entities(self, event_title: str, event_content: str) -> dict:
-        """
-        从事件中提取实体（板块、股票、原材料）
-        直接提取，不可联想，不可猜测
-        """
-        prompt = f"""你是一个专业的金融信息提取助手。请从以下金融事件中提取相关信息。
 
-事件标题：{event_title}
-事件内容：{event_content}
 
-请严格按照以下要求提取信息：
-1. 仅提取事件中明确提到的板块、股票、原材料
-2. 不要联想、不要猜测、不要添加事件中未提及的信息
-3. 如果某个类别没有提及，返回空列表
-4. 股票代码和板块代码如果文本中没有，可以不填
+    async def analyze_and_classify(
+        self, event_title: str, event_content: str, needs_classification: bool = False
+    ) -> dict:
+        """
+        一次性完成实体提取、影响打分和（可选的）事件分类
+        返回字典包含 ai_analysis 对象和可能的 event_category, event_type
+        """
+        classification_instruction = ""
+        if needs_classification:
+            classification_instruction = """
+3. 对事件进行分类，返回 `event_category` 和 `event_type`。
+   分类体系：
+   【大类】
+   - global_events (全球大事)
+   - policy_trends (政策风向)
+   - industry_trends (行业动向)
+   - company_updates (公司动态)
+
+   【子类型】
+   - macro_geopolitics (宏观地缘)
+   - regulatory_policy (监管政策)
+   - market_sentiment (市场情绪)
+   - industrial_chain (产业链驱动)
+   - core_sector (核心板块)
+   - major_event (重大事项)
+   - financial_report (财务报告)
+   - financing_announcement (融资公告)
+   - risk_warning (风险提示)
+   - asset_restructuring (资产重组)
+   - info_change (信息变更)
+   - shareholding_change (持股变动)
+   - other (其他)
+"""
+
+        prompt = f"""你是一个专业的金融新闻分析专家。请对以下金融新闻进行全面的分析。
+
+新闻标题：{event_title}
+新闻内容：{event_content}
+
+请完成以下任务：
+1. 提取事件中明确提到的板块、股票、原材料。
+   - 仅提取明确提及的，不要联想。
+   - 如果没有提及，返回空列表。
+2. 对事件影响进行打分（0-10分）并给出简短理由。
+   - 10分为最重大利好，0为最重大利空，5为中性。{classification_instruction}
 
 请以JSON格式返回结果，格式如下：
 {{
-    "affected_sectors": [
-        {{"name": "板块名称", "code": "板块代码（如有）"}}
-    ],
-    "affected_stocks": [
-        {{"name": "股票名称", "code": "股票代码（如有）"}}
-    ],
-    "affected_materials": [
-        {{"name": "原材料名称"}}
-    ]
+    "impact_score": 评分（0-10）,
+    "impact_reason": "打分理由",
+    "affected_sectors": [{{"name": "板块名称", "code": "板块代码(可选)"}}],
+    "affected_stocks": [{{"name": "股票名称", "code": "股票代码(可选)"}}],
+    "affected_materials": [{{"name": "原材料名称"}}],
+    "event_category": "分类大类英文标识(可选)",
+    "event_type": "子类型英文标识(可选)"
 }}
 
 请只返回JSON，不要包含其他说明文字。"""
@@ -53,13 +83,13 @@ class AIService:
                 messages=[
                     {"role": "user", "content": prompt},
                 ],
-                temperature=0.1,  # 降低温度以获得更确定的结果
-                max_tokens=2000,
+                temperature=0.1,
+                max_tokens=1500,
             )
 
             result_text = response.choices[0].message.content.strip()
 
-            # 清理可能的 markdown 代码块标记
+            # 清理代码块
             if result_text.startswith("```json"):
                 result_text = result_text[7:]
             if result_text.startswith("```"):
@@ -68,220 +98,14 @@ class AIService:
                 result_text = result_text[:-3]
             result_text = result_text.strip()
 
-            # 尝试提取JSON（处理可能的额外文本）
             start_idx = result_text.find('{')
             end_idx = result_text.rfind('}')
-
             if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
                 result_text = result_text[start_idx:end_idx + 1]
 
-            # 解析 JSON
             result = json.loads(result_text)
 
-            # 构造返回结果
-            affected_sectors = []
-            for item in result.get("affected_sectors", []):
-                # 如果没有代码，使用名称的拼音或默认值
-                if "code" not in item or not item["code"]:
-                    item["code"] = f"SECTOR_{item['name']}"
-                affected_sectors.append(AffectedSector(**item))
-
-            affected_stocks = []
-            for item in result.get("affected_stocks", []):
-                # 如果没有代码，使用默认值
-                if "code" not in item or not item["code"]:
-                    item["code"] = f"STOCK_{item['name']}"
-                affected_stocks.append(AffectedStock(**item))
-
-            affected_materials = [
-                AffectedMaterial(**item) for item in result.get("affected_materials", [])
-            ]
-
-            return {
-                "affected_sectors": affected_sectors,
-                "affected_stocks": affected_stocks,
-                "affected_materials": affected_materials,
-            }
-
-        except json.JSONDecodeError as e:
-            print(f"JSON decode error in extract_entities: {str(e)}")
-            print(f"Response text: {result_text[:200]}...")  # 显示前200字符
-            # 返回空结果
-            return {
-                "affected_sectors": [],
-                "affected_stocks": [],
-                "affected_materials": [],
-            }
-        except Exception as e:
-            print(f"Error extracting entities: {str(e)}")
-            if result_text:
-                print(f"Response text: {result_text[:200]}...")
-            # 返回空结果
-            return {
-                "affected_sectors": [],
-                "affected_stocks": [],
-                "affected_materials": [],
-            }
-
-    async def score_impact(self, event_title: str, event_content: str) -> dict:
-        """
-        对事件影响进行打分（0-10分）并给出理由
-        10分为最良好，0为最恶劣
-        """
-        prompt = f"""你是一个专业的金融事件分析专家。请对以下金融事件的影响进行分析和打分。
-
-事件标题：{event_title}
-事件内容：{event_content}
-
-请按照以下标准进行评分：
-- 9-10分：重大利好，预期将带来显著正面影响
-- 7-8分：明显利好，预期带来正面影响
-- 5-6分：中性偏正，影响有限或正负影响相当
-- 3-4分：中性偏负，有一定负面影响
-- 1-2分：明显利空，预期带来负面影响
-- 0分：重大利空，预期将带来严重负面影响
-
-请以JSON格式返回结果，格式如下：
-{{
-    "impact_score": 评分（0-10的浮点数，保留一位小数）,
-    "impact_reason": "详细的打分理由，说明为什么给出这个评分，分析事件可能带来的影响"
-}}
-
-请只返回JSON，不要包含其他说明文字。"""
-
-        result_text = ""
-        try:
-            response = self.client.chat.completions.create(
-                model="glm-4-flash",
-                messages=[
-                    {"role": "user", "content": prompt},
-                ],
-                temperature=0.3,
-                max_tokens=1000,
-            )
-
-            result_text = response.choices[0].message.content.strip()
-
-            # 清理可能的 markdown 代码块标记
-            if result_text.startswith("```json"):
-                result_text = result_text[7:]
-            if result_text.startswith("```"):
-                result_text = result_text[3:]
-            if result_text.endswith("```"):
-                result_text = result_text[:-3]
-            result_text = result_text.strip()
-
-            # 尝试提取JSON（处理可能的额外文本）
-            # 查找第一个 { 和最后一个 }
-            start_idx = result_text.find('{')
-            end_idx = result_text.rfind('}')
-
-            if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
-                result_text = result_text[start_idx:end_idx + 1]
-
-            # 解析 JSON
-            result = json.loads(result_text)
-
-            return {
-                "impact_score": result.get("impact_score", 5.0),
-                "impact_reason": result.get("impact_reason", "无法生成打分理由"),
-            }
-
-        except json.JSONDecodeError as e:
-            print(f"JSON decode error: {str(e)}")
-            print(f"Response text: {result_text[:200]}...")  # 显示前200字符
-            # 返回默认值
-            return {
-                "impact_score": 5.0,
-                "impact_reason": "AI 分析失败，无法生成打分理由",
-            }
-        except Exception as e:
-            print(f"Error scoring impact: {str(e)}")
-            if result_text:
-                print(f"Response text: {result_text[:200]}...")
-            # 返回默认值
-            return {
-                "impact_score": 5.0,
-                "impact_reason": "AI 分析失败，无法生成打分理由",
-            }
-
-    async def analyze_event(
-        self, event_title: str, event_content: str
-    ) -> AIAnalysis:
-        """
-        对事件进行完整的 AI 分析
-        包括实体提取和影响打分（合并为一次 API 调用以提高性能）
-        """
-        prompt = f"""你是一个专业的金融事件分析专家。请对以下金融事件进行全面分析。
-
-事件标题：{event_title}
-事件内容：{event_content}
-
-请按照以下要求进行分析：
-
-1. **实体提取**（仅提取事件中明确提到的，不要联想猜测）：
-   - 板块（sectors）：事件中明确提到的行业板块
-   - 股票（stocks）：事件中明确提到的股票
-   - 原材料（materials）：事件中明确提到的原材料
-
-2. **影响评分**（0-10分）：
-   - 9-10分：重大利好，预期将带来显著正面影响
-   - 7-8分：明显利好，预期带来正面影响
-   - 5-6分：中性偏正，影响有限或正负影响相当
-   - 3-4分：中性偏负，有一定负面影响
-   - 1-2分：明显利空，预期带来负面影响
-   - 0分：重大利空，预期将带来严重负面影响
-
-请以JSON格式返回结果，格式如下：
-{{
-    "affected_sectors": [
-        {{"name": "板块名称", "code": "板块代码（如有）"}}
-    ],
-    "affected_stocks": [
-        {{"name": "股票名称", "code": "股票代码（如有）"}}
-    ],
-    "affected_materials": [
-        {{"name": "原材料名称"}}
-    ],
-    "impact_score": 评分（0-10的浮点数，保留一位小数）,
-    "impact_reason": "详细的打分理由，说明为什么给出这个评分，分析事件可能带来的影响"
-}}
-
-请只返回JSON，不要包含其他说明文字。"""
-
-        result_text = ""
-        try:
-            response = self.client.chat.completions.create(
-                model="glm-4-flash",
-                messages=[
-                    {"role": "user", "content": prompt},
-                ],
-                temperature=0.2,
-                max_tokens=2500,
-            )
-
-            result_text = response.choices[0].message.content.strip()
-
-            # 清理可能的 markdown 代码块标记
-            if result_text.startswith("```json"):
-                result_text = result_text[7:]
-            if result_text.startswith("```"):
-                result_text = result_text[3:]
-            if result_text.endswith("```"):
-                result_text = result_text[:-3]
-            result_text = result_text.strip()
-
-            # 尝试提取JSON
-            start_idx = result_text.find('{')
-            end_idx = result_text.rfind('}')
-
-            if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
-                result_text = result_text[start_idx:end_idx + 1]
-
-            # 解析 JSON
-            result = json.loads(result_text)
-
-            # 构造实体列表
+            # 构造结果
             affected_sectors = []
             for item in result.get("affected_sectors", []):
                 if "code" not in item or not item["code"]:
@@ -298,40 +122,36 @@ class AIService:
                 AffectedMaterial(**item) for item in result.get("affected_materials", [])
             ]
 
-            # 构造 AI 分析结果
-            analysis = AIAnalysis(
+            ai_analysis = AIAnalysis(
                 impact_score=result.get("impact_score", 5.0),
-                impact_reason=result.get("impact_reason", "无法生成打分理由"),
+                impact_reason=result.get("impact_reason", "AI 分析完成"),
                 affected_sectors=affected_sectors,
                 affected_stocks=affected_stocks,
                 affected_materials=affected_materials,
             )
 
-            return analysis
+            response_data = {"ai_analysis": ai_analysis}
 
-        except json.JSONDecodeError as e:
-            print(f"JSON decode error in analyze_event: {str(e)}")
-            print(f"Response text: {result_text[:200]}...")
-            # 返回默认结果
-            return AIAnalysis(
-                impact_score=5.0,
-                impact_reason="AI 分析失败，无法生成打分理由",
-                affected_sectors=[],
-                affected_stocks=[],
-                affected_materials=[],
-            )
+            if needs_classification:
+                response_data["event_category"] = result.get("event_category")
+                response_data["event_type"] = result.get("event_type")
+
+            return response_data
+
         except Exception as e:
-            print(f"Error analyzing event: {str(e)}")
-            if result_text:
-                print(f"Response text: {result_text[:200]}...")
-            # 返回默认结果
-            return AIAnalysis(
-                impact_score=5.0,
-                impact_reason="AI 分析失败，无法生成打分理由",
-                affected_sectors=[],
-                affected_stocks=[],
-                affected_materials=[],
-            )
+            print(f"Error in analyze_and_classify: {str(e)}")
+            # 返回空结果
+            return {
+                "ai_analysis": AIAnalysis(
+                    impact_score=5.0,
+                    impact_reason="AI 分析失败",
+                    affected_sectors=[],
+                    affected_stocks=[],
+                    affected_materials=[],
+                )
+            }
+
+
 
 
 # 全局 AI 服务实例

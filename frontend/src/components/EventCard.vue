@@ -88,22 +88,20 @@ const emit = defineEmits<Emits>()
 
 const getCategoryLabel = (category: string) => {
   const labels: Record<string, string> = {
-    core_driver: '核心驱动',
-    special_situation: '特殊机遇',
-    industrial_chain: '产业链',
-    sentiment_flows: '市场情绪',
-    macro_geopolitics: '宏观地缘',
+    global_events: '全球大事',
+    policy_trends: '政策风向',
+    industry_trends: '行业动向',
+    company_updates: '公司动态',
   }
   return labels[category] || category.toUpperCase()
 }
 
 const getCategoryClass = (category: string) => {
   const classes: Record<string, string> = {
-    core_driver: 'category-markets',
-    special_situation: 'category-geopolitics',
-    industrial_chain: 'category-economy',
-    sentiment_flows: 'category-technology',
-    macro_geopolitics: 'category-geopolitics',
+    global_events: 'category-geopolitics',
+    policy_trends: 'category-policy',
+    industry_trends: 'category-economy',
+    company_updates: 'category-company',
   }
   return classes[category] || 'category-others'
 }

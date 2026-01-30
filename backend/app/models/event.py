@@ -6,39 +6,34 @@ from enum import Enum
 
 class EventCategory(str, Enum):
     """事件大类"""
-    CORE_DRIVER = "core_driver"  # 核心驱动板块
-    SPECIAL_SITUATION = "special_situation"  # 特殊机遇板块
-    INDUSTRIAL_CHAIN = "industrial_chain"  # 产业链与微观驱动
-    SENTIMENT_FLOWS = "sentiment_flows"  # 市场情绪与资金流
-    MACRO_GEOPOLITICS = "macro_geopolitics"  # 宏观叙事与地缘政治
+    GLOBAL_EVENTS = "global_events"       # 全球大事
+    POLICY_TRENDS = "policy_trends"       # 政策风向
+    INDUSTRY_TRENDS = "industry_trends"   # 行业动向
+    COMPANY_UPDATES = "company_updates"   # 公司动态
 
 
 class EventType(str, Enum):
-    """具体事件类型（从接口获取）"""
+    """具体事件类型"""
+    # 全球大事
+    MACRO_GEOPOLITICS = "macro_geopolitics"  # 宏观地缘
+
+    # 政策风向
     REGULATORY_POLICY = "regulatory_policy"  # 监管政策
-    INDUSTRY_POLICY = "industry_policy"  # 产业政策
-    REGULATORY_PENALTY = "regulatory_penalty"  # 监管处罚
-    APPROVAL = "approval"  # 准入与审批
-    EARNINGS_PREVIEW = "earnings_preview"  # 业绩预告
-    DIVIDEND = "dividend"  # 分红送转
-    REFINANCING = "refinancing"  # 再融资
-    MA = "ma"  # 并购重组
-    RESTRUCTURING = "restructuring"  # 破产重整
-    MANAGEMENT_CHANGE = "management_change"  # 管理层异动
-    SPINOFF = "spinoff"  # 拆分剥离
-    PRICE_CHANGE = "price_change"  # 价格传导
-    CAPACITY_CHANGE = "capacity_change"  # 产能变化
-    SUPPLY_DEMAND = "supply_demand"  # 供需缺口
-    ABNORMAL_MOVEMENT = "abnormal_movement"  # 异常异动
-    PUBLIC_SENTIMENT = "public_sentiment"  # 舆情热度
-    INDEX_CHANGE = "index_change"  # 指数成分股变动
-    MONETARY_POLICY = "monetary_policy"  # 货币政策
-    GEOPOLITICAL_RISK = "geopolitical_risk"  # 地缘风险
-    MACRO_INDICATORS = "macro_indicators"  # 宏观指标
-    LITIGATION = "litigation"  # 诉讼仲裁
-    SHAREHOLDER_CHANGE = "shareholder_change"  # 股权转让
-    REPURCHASE = "repurchase"  # 回购
-    ANNUAL_REPORT = "annual_report"  # 年度报告
+    MARKET_SENTIMENT = "market_sentiment"    # 市场情绪
+
+    # 行业动向
+    INDUSTRIAL_CHAIN = "industrial_chain"    # 产业链驱动
+    CORE_SECTOR = "core_sector"              # 核心板块
+
+    # 公司动态
+    MAJOR_EVENT = "major_event"                        # 重大事项
+    FINANCIAL_REPORT = "financial_report"              # 财务报告
+    FINANCING_ANNOUNCEMENT = "financing_announcement"  # 融资公告
+    RISK_WARNING = "risk_warning"                      # 风险提示
+    ASSET_RESTRUCTURING = "asset_restructuring"        # 资产重组
+    INFO_CHANGE = "info_change"                        # 信息变更
+    SHAREHOLDING_CHANGE = "shareholding_change"        # 持股变动
+
     OTHER = "other"  # 其他
 
 

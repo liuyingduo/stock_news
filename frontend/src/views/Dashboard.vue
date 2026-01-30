@@ -17,11 +17,10 @@
         class="filter-select"
         @change="handleSearch"
       >
-        <el-option label="核心驱动板块" value="core_driver" />
-        <el-option label="特殊机遇板块" value="special_situation" />
-        <el-option label="产业链驱动" value="industrial_chain" />
-        <el-option label="市场情绪" value="sentiment_flows" />
-        <el-option label="宏观地缘" value="macro_geopolitics" />
+        <el-option label="全球大事" value="global_events" />
+        <el-option label="政策风向" value="policy_trends" />
+        <el-option label="行业动向" value="industry_trends" />
+        <el-option label="公司动态" value="company_updates" />
       </el-select>
       <el-select
         v-model="queryParams.event_type"
@@ -31,13 +30,27 @@
         class="filter-select"
         @change="handleSearch"
       >
-        <el-option label="监管政策" value="regulatory_policy" />
-        <el-option label="产业政策" value="industry_policy" />
-        <el-option label="监管处罚" value="regulatory_penalty" />
-        <el-option label="业绩预告" value="earnings_preview" />
-        <el-option label="并购重组" value="ma" />
-        <el-option label="年报" value="annual_report" />
-        <el-option label="其他" value="other" />
+        <el-option-group label="全球大事">
+          <el-option label="宏观地缘" value="macro_geopolitics" />
+        </el-option-group>
+        <el-option-group label="政策风向">
+          <el-option label="监管政策" value="regulatory_policy" />
+          <el-option label="市场情绪" value="market_sentiment" />
+        </el-option-group>
+        <el-option-group label="行业动向">
+          <el-option label="产业链驱动" value="industrial_chain" />
+          <el-option label="核心板块" value="core_sector" />
+        </el-option-group>
+        <el-option-group label="公司动态">
+          <el-option label="重大事项" value="major_event" />
+          <el-option label="财务报告" value="financial_report" />
+          <el-option label="融资公告" value="financing_announcement" />
+          <el-option label="风险提示" value="risk_warning" />
+          <el-option label="资产重组" value="asset_restructuring" />
+          <el-option label="信息变更" value="info_change" />
+          <el-option label="持股变动" value="shareholding_change" />
+          <el-option label="其他" value="other" />
+        </el-option-group>
       </el-select>
       <el-date-picker
         v-model="dateRange"
@@ -115,7 +128,7 @@ const loadEvents = async () => {
   loading.value = true
   try {
     const response = await getEvents(queryParams)
-    events.value = response || []
+    events.value = response.data || []
     // 注意：这里假设后端返回总数的方式，可能需要调整
     // total.value = response.total
   } catch (error: any) {

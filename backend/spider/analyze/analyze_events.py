@@ -1,5 +1,5 @@
 """
-AI 分析脚本 - 对事件进行 AI 分析
+AI 分析脚本 - 对事件进行 AI 分析（包含分类、评分、提取）
 """
 import sys
 import os
@@ -25,38 +25,52 @@ class EventAnalyzer:
     def __init__(self):
         """初始化分析器"""
         self.ai_service = None
-        self.executor = ThreadPoolExecutor(max_workers=10)  # 用于执行同步的 AI 调用
+        self.executor = ThreadPoolExecutor(max_workers=10)
         self.completed_count = 0
         self.failed_count = 0
         self.start_time = None
-        self.lock = asyncio.Lock()  # 用于线程安全的计数器更新
+        self.lock = asyncio.Lock()
+        
+        # 分类映射
+        self.category_mapping = {
+            "global_events": EventCategory.GLOBAL_EVENTS,
+            "policy_trends": EventCategory.POLICY_TRENDS,
+            "industry_trends": EventCategory.INDUSTRY_TRENDS,
+            "company_updates": EventCategory.COMPANY_UPDATES,
+        }
+        
+        self.type_mapping = {
+            "macro_geopolitics": EventType.MACRO_GEOPOLITICS,
+            "regulatory_policy": EventType.REGULATORY_POLICY,
+            "market_sentiment": EventType.MARKET_SENTIMENT,
+            "industrial_chain": EventType.INDUSTRIAL_CHAIN,
+            "core_sector": EventType.CORE_SECTOR,
+            "major_event": EventType.MAJOR_EVENT,
+            "financial_report": EventType.FINANCIAL_REPORT,
+            "financing_announcement": EventType.FINANCING_ANNOUNCEMENT,
+            "risk_warning": EventType.RISK_WARNING,
+            "asset_restructuring": EventType.ASSET_RESTRUCTURING,
+            "info_change": EventType.INFO_CHANGE,
+            "shareholding_change": EventType.SHAREHOLDING_CHANGE,
+            "other": EventType.OTHER,
+        }
 
     async def get_pending_events(self, limit: Optional[int] = None, days: Optional[int] = None,
                                  category: Optional[str] = None,
                                  event_type: Optional[str] = None) -> list:
         """
         获取待分析的事件列表
-
-        Args:
-            limit: 最多获取多少条事件（None 表示不限制）
-            days: 只分析最近N天的事件
-            category: 按事件类别筛选
-            event_type: 按事件类型筛选
-
-        Returns:
-            待分析的事件列表
         """
-        # 如果没有指定 limit，获取所有事件
+        # 获取基础列表
         if limit is None:
-            limit = 1000000  # 设置一个很大的值
-
+            limit = 1000000
+            
         events, total = await db_service.get_events(
             limit=limit,
             category=category,
             event_type=event_type
         )
 
-        # 过滤出没有 AI 分析结果的事件
         pending_events = []
         cutoff_date = None
 
@@ -65,25 +79,26 @@ class EventAnalyzer:
             print(f"Filtering events newer than {cutoff_date.strftime('%Y-%m-%d %H:%M:%S')}")
 
         for event in events:
-            # 跳过已有分析的事件
-            if event.get("ai_analysis"):
+            # 跳过已有分析且已分类的事件
+            has_analysis = bool(event.get("ai_analysis"))
+            has_category = bool(event.get("event_category"))
+            
+            # 如果已经分析过且有分类，跳过
+            if has_analysis and has_category:
                 continue
 
             # 检查日期过滤
             if cutoff_date is not None:
                 announcement_date = event.get("announcement_date")
                 if announcement_date:
-                    # 处理字符串格式的日期
-                    if isinstance(announcement_date, str):
-                        try:
-                            announcement_date = datetime.fromisoformat(announcement_date.replace('Z', '+00:00'))
-                        except:
-                            continue
-
-                    # 转换为datetime对象（如果是其他格式）
-                    if hasattr(announcement_date, 'timestamp'):
-                        if announcement_date < cutoff_date:
-                            continue
+                     try:
+                        if isinstance(announcement_date, str):
+                             announcement_date = datetime.fromisoformat(announcement_date.replace('Z', '+00:00'))
+                        if hasattr(announcement_date, 'timestamp'):
+                            if announcement_date < cutoff_date:
+                                continue
+                     except:
+                        continue
 
             pending_events.append(event)
 
@@ -91,26 +106,41 @@ class EventAnalyzer:
 
     async def analyze_event(self, event_data: dict, index: int, total: int) -> Tuple[bool, Optional[dict], Optional[dict]]:
         """
-        分析单个事件（不立即更新数据库）
-
-        Args:
-            event_data: 事件数据
-            index: 当前索引
-            total: 总数
-
-        Returns:
-            (是否成功, 事件数据, AI分析结果)
+        分析单个事件
         """
         try:
-            # 调用 AI 服务进行分析
-            ai_analysis = await self.ai_service.analyze_event(
+            # 检查是否需要分类
+            current_category = event_data.get("event_category")
+            needs_classification = (current_category is None) or event_data.get("needs_ai_classification", False)
+            
+            # 调用 AI 服务进行分析和分类（如果需要）
+            result = await self.ai_service.analyze_and_classify(
                 event_data["title"],
-                event_data["content"]
+                event_data["content"],
+                needs_classification=needs_classification
             )
+
+            ai_analysis = result["ai_analysis"]
+            
+            # 准备更新数据
+            update_dict = {"ai_analysis": ai_analysis}
+            
+            # 如果进行了分类，更新分类信息
+            if needs_classification:
+                cat_str = result.get("event_category")
+                type_str = result.get("event_type")
+                
+                if cat_str and type_str:
+                    new_category = self.category_mapping.get(cat_str, EventCategory.COMPANY_UPDATES)
+                    new_type = self.type_mapping.get(type_str, EventType.OTHER)
+                    
+                    update_dict["event_category"] = new_category
+                    update_dict["event_type"] = new_type
 
             return True, event_data, ai_analysis
 
         except Exception as e:
+            print(f"Error analyzing event: {e}")
             return False, event_data, None
 
     async def analyze(self, limit: Optional[int] = None, days: Optional[int] = None,
@@ -118,16 +148,9 @@ class EventAnalyzer:
                      concurrency: int = 20):
         """
         批量分析事件
-
-        Args:
-            limit: 最多分析多少条事件（None 表示不限制，只按 days 过滤）
-            days: 只分析最近N天的事件
-            category: 按事件类别筛选
-            event_type: 按事件类型筛选
-            concurrency: 并发分析数量（默认：20，增加可提高速度但会占用更多API资源）
         """
         print("=" * 60)
-        print("Event AI Analysis")
+        print("Event AI Analysis & Classification")
         print("=" * 60)
 
         # 连接数据库
@@ -273,14 +296,14 @@ async def main():
     import argparse
 
     parser = argparse.ArgumentParser(description="对事件进行 AI 分析")
-    parser.add_argument("--limit", type=int, default=None, help="最多分析多少条事件（默认：不限制，只按 --days 过滤）")
-    parser.add_argument("--days", type=int, default=None, required=True, help="只分析最近N天的事件（必需参数）")
+    parser.add_argument("--limit", type=int, default=None, help="最多分析多少条事件（默认：不限制）")
+    parser.add_argument("--days", type=int, default=None, help="只分析最近N天的事件")
     parser.add_argument("--category", type=str, default=None,
-                       choices=["core_driver", "special_situation", "industrial_chain", "sentiment_flows", "macro_geopolitics"],
+                       choices=["global_events", "policy_trends", "industry_trends", "company_updates"],
                        help="按事件类别筛选")
     parser.add_argument("--event-type", type=str, default=None, help="按事件类型筛选")
     parser.add_argument("--concurrency", "-c", type=int, default=20,
-                       help="并发分析数量（默认：20，增加可提高速度但会占用更多API资源）")
+                       help="并发分析数量（默认：20）")
 
     args = parser.parse_args()
 

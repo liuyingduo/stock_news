@@ -1,37 +1,28 @@
 // 事件类型
 export enum EventCategory {
-  CORE_DRIVER = 'core_driver',
-  SPECIAL_SITUATION = 'special_situation',
-  INDUSTRIAL_CHAIN = 'industrial_chain',
-  SENTIMENT_FLOWS = 'sentiment_flows',
-  MACRO_GEOPOLITICS = 'macro_geopolitics',
+  GLOBAL_EVENTS = 'global_events',
+  POLICY_TRENDS = 'policy_trends',
+  INDUSTRY_TRENDS = 'industry_trends',
+  COMPANY_UPDATES = 'company_updates',
 }
 
 export enum EventType {
+  // 全球大事
+  MACRO_GEOPOLITICS = 'macro_geopolitics',
+  // 政策风向
   REGULATORY_POLICY = 'regulatory_policy',
-  INDUSTRY_POLICY = 'industry_policy',
-  REGULATORY_PENALTY = 'regulatory_penalty',
-  APPROVAL = 'approval',
-  EARNINGS_PREVIEW = 'earnings_preview',
-  DIVIDEND = 'dividend',
-  REFINANCING = 'refinancing',
-  MA = 'ma',
-  RESTRUCTURING = 'restructuring',
-  MANAGEMENT_CHANGE = 'management_change',
-  SPINOFF = 'spinoff',
-  PRICE_CHANGE = 'price_change',
-  CAPACITY_CHANGE = 'capacity_change',
-  SUPPLY_DEMAND = 'supply_demand',
-  ABNORMAL_MOVEMENT = 'abnormal_movement',
-  PUBLIC_SENTIMENT = 'public_sentiment',
-  INDEX_CHANGE = 'index_change',
-  MONETARY_POLICY = 'monetary_policy',
-  GEOPOLITICAL_RISK = 'geopolitical_risk',
-  MACRO_INDICATORS = 'macro_indicators',
-  LITIGATION = 'litigation',
-  SHAREHOLDER_CHANGE = 'shareholder_change',
-  REPURCHASE = 'repurchase',
-  ANNUAL_REPORT = 'annual_report',
+  MARKET_SENTIMENT = 'market_sentiment',
+  // 行业动向
+  INDUSTRIAL_CHAIN = 'industrial_chain',
+  CORE_SECTOR = 'core_sector',
+  // 公司动态
+  MAJOR_EVENT = 'major_event',
+  FINANCIAL_REPORT = 'financial_report',
+  FINANCING_ANNOUNCEMENT = 'financing_announcement',
+  RISK_WARNING = 'risk_warning',
+  ASSET_RESTRUCTURING = 'asset_restructuring',
+  INFO_CHANGE = 'info_change',
+  SHAREHOLDING_CHANGE = 'shareholding_change',
   OTHER = 'other',
 }
 

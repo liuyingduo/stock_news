@@ -62,40 +62,29 @@ API 文档：`http://localhost:8000/docs`
 
 系统采用**分离架构**：数据采集和AI分析完全独立，可以分步运行。
 
-### 数据采集（不含AI分析）
+### 数据来源
 
-#### 1. 初始化历史数据
+| 接口 | 来源 | 说明 |
+|------|------|------|
+| `stock_notice_report` | 东方财富 | 沪深京A股公告，类型已知 |
+| `stock_info_global_cls` | 财联社 | 电报快讯，需AI分类 |
 
-```bash
-# 初始化所有A股最近30天的数据（约40分钟）
-uv run python spider/init/init_events.py --all --days 30
-
-# 或初始化热门股票数据（更快，约2分钟）
-uv run python spider/init/init_events.py --stocks 20 --days 30
-
-# 便捷脚本
-uv run python run_init.py --all --days 30
-```
-
-#### 2. 增量更新最新数据
+### 数据采集
 
 ```bash
-# 更新所有A股最近1天的数据
-uv run python spider/update/update_events.py --all --days 1
+# 初始化数据（获取最近7天公告）
+uv run python spider/run_init.py
 
-# 或更新热门股票数据
-uv run python spider/update/update_events.py --stocks 10 --days 1
+# 获取最近30天公告
+uv run python spider/run_init.py --days 30
 
-# 便捷脚本
-uv run python run_update.py --all --days 1
+# 增量更新（获取今日公告）
+uv run python spider/run_update.py
 ```
 
-**参数说明**：
-- `--stocks N`: 获取前N只热门股票（默认：init为20，update为10）
-- `--all`: 获取所有A股股票（约5000只）
-- `--days N`: 只保存最近N天的数据（不指定则保存全部）
+### AI 分析
 
-### AI 分析（独立运行）
+分析脚本会自动进行分类和分析（一次调用完成）：
 
 ```bash
 # 分析所有待分析的事件
@@ -104,53 +93,30 @@ uv run python spider/analyze/analyze_events.py
 # 分析最近7天的事件
 uv run python spider/analyze/analyze_events.py --days 7
 
-# 只分析核心驱动类别的事件
-uv run python spider/analyze/analyze_events.py --category core_driver
+# 高速模式（并发10个）
+uv run python spider/analyze/analyze_events.py --concurrency 10
 
-# 最多分析100条事件
-uv run python spider/analyze/analyze_events.py --limit 100
-
-# 组合使用：分析最近3天的核心驱动事件，最多50条
-uv run python spider/analyze/analyze_events.py --days 3 --category core_driver --limit 50
-
-# 高速模式（并发15个）
-uv run python spider/analyze/analyze_events.py --days 7 --concurrency 15
-
-# 便捷脚本
-uv run python run_analysis.py --days 7
+# 只分析特定类别
+uv run python spider/analyze/analyze_events.py --category company_updates
 ```
 
 **AI分析参数**：
 - `--limit N`: 最多分析N条事件（默认：1000）
 - `--days N`: 只分析最近N天的事件
-- `--category CAT`: 按事件类别筛选（core_driver, special_situation等）
-- `--event-type TYPE`: 按事件类型筛选（dividend, ma等）
+- `--category CAT`: 按事件类别筛选（global_events, policy_trends, industry_trends, company_updates）
+- `--event-type TYPE`: 按事件类型筛选
 - `--concurrency N` 或 `-c N`: 并发分析数量（默认：5）
-
-### 检查工具
-
-```bash
-# 查看待分析的事件统计
-uv run python spider/analyze/check_pending_events.py
-
-# 检查并重试失败的事件
-uv run python spider/analyze/check_failed_events.py
-```
 
 ### 典型工作流程
 
 ```bash
 # 第一次使用
-uv run python spider/init/init_events.py --all --days 30    # 采集数据
-uv run python spider/analyze/check_pending_events.py         # 检查状态
-uv run python spider/analyze/analyze_events.py --days 30    # AI分析
-uv run python spider/analyze/check_failed_events.py         # 处理失败事件
+uv run python spider/run_init.py --days 30           # 采集数据
+uv run python spider/analyze/analyze_events.py       # AI分析
 
 # 日常更新
-uv run python spider/update/update_events.py --all --days 1 # 采集最新数据
-uv run python spider/analyze/check_pending_events.py         # 检查状态
-uv run python spider/analyze/analyze_events.py --days 1 --concurrency 10  # AI分析
-uv run python spider/analyze/check_failed_events.py         # 定期检查失败事件
+uv run python spider/run_update.py                   # 采集最新数据
+uv run python spider/analyze/analyze_events.py --days 1  # 分析新数据
 ```
 
 ## 项目结构
@@ -180,12 +146,9 @@ backend/
 │   ├── update/              # 更新爬虫
 │   │   └── update_events.py # 增量更新数据
 │   ├── analyze/             # AI 分析脚本
-│   │   ├── analyze_events.py      # 批量AI分析
-│   │   ├── check_pending_events.py # 检查待分析事件
-│   │   └── check_failed_events.py # 检查并重试失败事件
+│   │   └── analyze_events.py    # 批量AI分析（含分类）
 │   ├── run_init.py          # 便捷初始化脚本
 │   ├── run_update.py        # 便捷更新脚本
-│   ├── run_analysis.py      # 便捷分析脚本
 │   └── README.md            # 详细使用文档
 ├── pyproject.toml           # 项目依赖
 └── .env                     # 环境变量
@@ -214,35 +177,13 @@ backend/
 - `GET /` - 根路径
 - `GET /health` - 健康检查
 
-## 开发工具
-
-### 代码格式化
-
-```bash
-uv run black app/
-```
-
-### 代码检查
-
-```bash
-uv run ruff check app/
-```
-
-### 运行测试
-
-```bash
-uv run pytest
-```
-
 ## 注意事项
 
-1. **数据采集和AI分析分离**：爬虫脚本不会自动进行AI分析，需要单独运行分析脚本
-2. **API限流**：爬虫脚本每只股票之间有0.5秒延迟，避免请求过快被限制
-3. **大量数据处理**：使用 `--all` 参数会处理所有A股（约5000只），请确保有足够时间
-4. **数据库连接**：确保MongoDB服务正在运行
-5. **AI服务配置**：使用AI分析功能前，请确保 `.env` 文件中配置了 `ZHIPU_API_KEY`
+1. **AI分析优化**：系统将分类、评分、实体提取合并为一次 LLM 调用，降低成本并提高速度
+2. **数据采集和AI分析分离**：爬虫脚本不会自动进行AI分析，需要单独运行分析脚本
+3. **数据库连接**：确保MongoDB服务正在运行
+4. **AI服务配置**：使用AI分析功能前，请确保 `.env` 文件中配置了 `ZHIPU_API_KEY`
 
 ## 详细文档
 
 更多爬虫和AI分析的详细用法，请参考 [spider/README.md](./spider/README.md)
-
