@@ -16,8 +16,10 @@ from typing import List, Optional
 from app.models import EventCreate, EventCategory, EventType
 from app.services.database_service import db_service
 from app.core.database import connect_to_mongo, close_mongo_connection
+from spider.common.notice_fetcher import fetch_notice_content
 
 from tqdm import tqdm
+
 
 
 class EventInitializer:
@@ -54,7 +56,7 @@ class EventInitializer:
 
         return datetime.now()
 
-    async def fetch_stock_notices(self, days: int = 7) -> List[dict]:
+    async def fetch_stock_notices(self, days: int = 7, fetch_content: bool = True) -> List[dict]:
         """
         获取沪深京 A 股公告数据
 
@@ -74,6 +76,8 @@ class EventInitializer:
             dates.append(date.strftime("%Y%m%d"))
 
         print(f"Fetching notices for {len(dates)} days, {len(notice_types)} types...")
+        if fetch_content:
+            print("Note: Fetching full content from detail pages (this may take longer)")
 
         for notice_type in tqdm(notice_types, desc="Notice types"):
             event_type = self.notice_type_mapping.get(notice_type, EventType.OTHER)
@@ -85,14 +89,25 @@ class EventInitializer:
                         continue
 
                     for _, row in df.iterrows():
+                        title = row.get("公告标题", "")
+                        url = row.get("网址", "")
+                        
+                        # 尝试获取完整内容
+                        if fetch_content and url:
+                            content = fetch_notice_content(url)
+                            if not content:
+                                content = title  # 如果获取失败，使用标题
+                        else:
+                            content = title
+                        
                         notice = {
-                            "title": row.get("公告标题", ""),
-                            "content": row.get("公告标题", ""),  # 公告接口没有内容字段，用标题代替
+                            "title": title,
+                            "content": content,
                             "stock_code": row.get("代码", ""),
                             "stock_name": row.get("名称", ""),
                             "announcement_date": self._parse_date(row.get("公告日期", str(datetime.now()))),
                             "source": "东方财富-公告大全",
-                            "original_url": row.get("网址", ""),
+                            "original_url": url,
                             "event_type": event_type,
                             "event_category": EventCategory.COMPANY_UPDATES,
                         }
