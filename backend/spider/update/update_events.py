@@ -177,74 +177,100 @@ class EventUpdater:
                 continue
         return datetime.now()
 
-    async def check_event_exists(self, title: str) -> bool:
-        """检查事件是否已存在"""
-        events, _ = await db_service.get_events(limit=1, search=title)
-        for event in events:
-            if event["title"] == title:
-                return True
-        return False
-
     async def process_and_save_events(self, events_data: List[dict], days: int = None) -> int:
         """
-        处理并保存事件到数据库（跳过已存在的）
+        处理并保存事件到数据库（批量版本）
 
         Args:
             events_data: 事件数据列表
             days: 只保存最近N天的事件，None表示保存全部
         """
-        saved_count = 0
-        skipped_count = 0
-        cutoff_date = None
-
+        # 1. 过滤日期
         if days is not None:
             cutoff_date = datetime.now() - timedelta(days=days)
             print(f"Filtering events newer than {cutoff_date.strftime('%Y-%m-%d %H:%M:%S')}")
-        
-        # 使用 tqdm 显示进度条
-        pbar = tqdm(events_data, desc="Saving events", unit="event")
 
-        for event_data in pbar:
-            try:
-                # 检查日期是否在范围内
-                if cutoff_date is not None:
-                    announcement_date = event_data.get("announcement_date")
-                    if announcement_date and announcement_date < cutoff_date:
-                        skipped_count += 1
-                        continue
+            filtered_events = [
+                event for event in events_data
+                if event.get("announcement_date") and event["announcement_date"] >= cutoff_date
+            ]
+            print(f"Filtered {len(events_data) - len(filtered_events)} old events")
+            events_data = filtered_events
 
-                if await self.check_event_exists(event_data["title"]):
-                    skipped_count += 1
-                    continue
+        if not events_data:
+            print("No events to save after filtering")
+            return 0
 
-                event_type = self._classify_by_title(event_data["title"])
-                
-                if event_type in [EventType.MA, EventType.RESTRUCTURING, EventType.MANAGEMENT_CHANGE]:
-                    event_category = EventCategory.SPECIAL_SITUATION
-                else:
-                    event_category = EventCategory.SENTIMENT_FLOWS
+        # 2. 批量获取已存在的事件标题（一次性查询）
+        print("Checking for existing events...")
+        try:
+            # 获取所有已存在事件的标题（只返回标题字段）
+            existing_events, _ = await db_service.get_events(limit=1000000)
+            existing_titles = {event["title"] for event in existing_events}
+            print(f"Found {len(existing_titles)} existing events in database")
+        except Exception as e:
+            print(f"Warning: Could not fetch existing events: {e}")
+            existing_titles = set()
 
-                event_create = EventCreate(
-                    title=event_data["title"],
-                    content=event_data["content"],
-                    event_category=event_category,
-                    event_type=event_type,
-                    announcement_date=event_data["announcement_date"],
-                    source=event_data.get("source"),
-                    original_url=event_data.get("original_url"),
-                )
+        # 3. 过滤新事件
+        new_events = []
+        skipped_count = 0
 
-                await db_service.create_event(event_create)
-                saved_count += 1
-                # print(f"Saved new event: {event_data['title'][:50]}...")
-                
-                # 更新进度条描述
-                if saved_count % 10 == 0:
-                    pbar.set_description(f"Saved {saved_count}, Skipped {skipped_count}")
-
-            except Exception as e:
-                # print(f"Error saving event: {str(e)}")
+        for event_data in events_data:
+            title = event_data["title"]
+            if title in existing_titles:
+                skipped_count += 1
                 continue
+
+            # 分类事件
+            event_type = self._classify_by_title(title)
+            if event_type in [EventType.MA, EventType.RESTRUCTURING, EventType.MANAGEMENT_CHANGE]:
+                event_category = EventCategory.SPECIAL_SITUATION
+            else:
+                event_category = EventCategory.SENTIMENT_FLOWS
+
+            new_events.append({
+                "title": title,
+                "content": event_data["content"],
+                "event_category": event_category,
+                "event_type": event_type,
+                "announcement_date": event_data["announcement_date"],
+                "source": event_data.get("source"),
+                "original_url": event_data.get("original_url"),
+            })
+
+        print(f"Found {len(new_events)} new events to save")
+
+        if not new_events:
+            print("No new events to save")
+            return 0
+
+        # 4. 批量保存新事件（每批1000条）
+        BATCH_SIZE = 1000
+        saved_count = 0
+        total_batches = (len(new_events) + BATCH_SIZE - 1) // BATCH_SIZE
+
+        for i in range(0, len(new_events), BATCH_SIZE):
+            batch = new_events[i:i + BATCH_SIZE]
+            batch_num = i // BATCH_SIZE + 1
+
+            # 转换为 EventCreate 对象
+            event_creates = [EventCreate(**event_data) for event_data in batch]
+
+            # 批量插入
+            try:
+                inserted = await db_service.create_events_bulk(event_creates)
+                saved_count += inserted
+                print(f"Batch {batch_num}/{total_batches}: Inserted {inserted} events")
+            except Exception as e:
+                # 如果批量插入失败，降级为单条插入
+                print(f"Batch insert failed: {e}, falling back to single inserts...")
+                for event_create in event_creates:
+                    try:
+                        await db_service.create_event(event_create)
+                        saved_count += 1
+                    except Exception:
+                        continue
 
         print(f"\nSummary: Saved {saved_count} new events, skipped {skipped_count} existing events")
         return saved_count

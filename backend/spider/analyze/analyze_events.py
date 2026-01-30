@@ -31,14 +31,14 @@ class EventAnalyzer:
         self.start_time = None
         self.lock = asyncio.Lock()  # 用于线程安全的计数器更新
 
-    async def get_pending_events(self, limit: int = 1000, days: Optional[int] = None,
+    async def get_pending_events(self, limit: Optional[int] = None, days: Optional[int] = None,
                                  category: Optional[str] = None,
                                  event_type: Optional[str] = None) -> list:
         """
         获取待分析的事件列表
 
         Args:
-            limit: 最多获取多少条事件
+            limit: 最多获取多少条事件（None 表示不限制）
             days: 只分析最近N天的事件
             category: 按事件类别筛选
             event_type: 按事件类型筛选
@@ -46,6 +46,10 @@ class EventAnalyzer:
         Returns:
             待分析的事件列表
         """
+        # 如果没有指定 limit，获取所有事件
+        if limit is None:
+            limit = 1000000  # 设置一个很大的值
+
         events, total = await db_service.get_events(
             limit=limit,
             category=category,
@@ -109,14 +113,14 @@ class EventAnalyzer:
         except Exception as e:
             return False, event_data, None
 
-    async def analyze(self, limit: int = 1000, days: Optional[int] = None,
+    async def analyze(self, limit: Optional[int] = None, days: Optional[int] = None,
                      category: Optional[str] = None, event_type: Optional[str] = None,
                      concurrency: int = 20):
         """
         批量分析事件
 
         Args:
-            limit: 最多分析多少条事件
+            limit: 最多分析多少条事件（None 表示不限制，只按 days 过滤）
             days: 只分析最近N天的事件
             category: 按事件类别筛选
             event_type: 按事件类型筛选
@@ -138,6 +142,11 @@ class EventAnalyzer:
 
         # 获取待分析的事件
         print("\nFetching pending events...")
+        if limit:
+            print(f"Limit: {limit} events")
+        if days:
+            print(f"Filtering events from the last {days} days")
+
         pending_events = await self.get_pending_events(
             limit=limit,
             days=days,
@@ -264,8 +273,8 @@ async def main():
     import argparse
 
     parser = argparse.ArgumentParser(description="对事件进行 AI 分析")
-    parser.add_argument("--limit", type=int, default=1000, help="最多分析多少条事件（默认：1000）")
-    parser.add_argument("--days", type=int, default=None, help="只分析最近N天的事件（默认：全部）")
+    parser.add_argument("--limit", type=int, default=None, help="最多分析多少条事件（默认：不限制，只按 --days 过滤）")
+    parser.add_argument("--days", type=int, default=None, required=True, help="只分析最近N天的事件（必需参数）")
     parser.add_argument("--category", type=str, default=None,
                        choices=["core_driver", "special_situation", "industrial_chain", "sentiment_flows", "macro_geopolitics"],
                        help="按事件类别筛选")
