@@ -12,6 +12,7 @@ from .event import (
 )
 from .sector import Sector, SectorCreate, SectorUpdate, SectorResponse, RiskLevel
 from .stock import Stock, StockCreate, StockUpdate, StockResponse, StockStatus
+from .common import PaginatedResponse
 
 __all__ = [
     "Event",
@@ -34,4 +35,5 @@ __all__ = [
     "StockUpdate",
     "StockResponse",
     "StockStatus",
+    "PaginatedResponse",
 ]

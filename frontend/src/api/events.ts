@@ -1,8 +1,8 @@
 import api from './index'
-import type { Event, EventsQuery, AIAnalysis } from './types'
+import type { Event, EventsQuery, PaginatedResponse } from './types'
 
-export const getEvents = (params: EventsQuery) => {
-  return api.get<Event[]>('/events', { params })
+export const getEvents = (params: EventsQuery): Promise<PaginatedResponse<Event>> => {
+  return api.get('/events', { params })
 }
 
 export const getEventById = (id: string) => {

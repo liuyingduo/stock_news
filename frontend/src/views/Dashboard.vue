@@ -128,9 +128,8 @@ const loadEvents = async () => {
   loading.value = true
   try {
     const response = await getEvents(queryParams)
-    events.value = response.data || []
-    // 注意：这里假设后端返回总数的方式，可能需要调整
-    // total.value = response.total
+    events.value = response.items || []
+    total.value = response.total || 0
   } catch (error: any) {
     ElMessage.error(error.message || '加载事件失败')
   } finally {

@@ -36,6 +36,15 @@ uv run python spider/run_update.py
 uv run python spider/run_update.py --days 3
 ```
 
+### 3. 实时监控脚本 (`update/telegraph_monitor.py`)
+实时监听财联社电报，自动入库并触发AI分析。适合长期运行。
+
+```bash
+uv run python spider/update/telegraph_monitor.py
+```
+* 按 `Ctrl+C` 停止监控
+
+
 ### 3. AI分析脚本 (`analyze/analyze_events.py`)
 对已采集的事件进行AI分析。**一次调用完成分类、评分和实体提取**。
 

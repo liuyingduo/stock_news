@@ -143,7 +143,7 @@ class EventAnalyzer:
             print(f"Error analyzing event: {e}")
             return False, event_data, None
 
-    async def analyze(self, limit: Optional[int] = None, days: Optional[int] = None,
+    async def process_pending_events(self, limit: Optional[int] = None, days: Optional[int] = None,
                      category: Optional[str] = None, event_type: Optional[str] = None,
                      concurrency: int = 20):
         """
@@ -154,13 +154,13 @@ class EventAnalyzer:
         print("=" * 60)
 
         # 连接数据库
-        await connect_to_mongo()
+        # await connect_to_mongo()
 
         # 获取 AI 服务
         self.ai_service = get_ai_service()
         if not self.ai_service:
             print("Error: AI service not configured. Please set ZHIPU_API_KEY in .env")
-            await close_mongo_connection()
+            # await close_mongo_connection()
             return
 
         # 获取待分析的事件
@@ -179,7 +179,7 @@ class EventAnalyzer:
 
         if not pending_events:
             print("No pending events found.")
-            await close_mongo_connection()
+            # await close_mongo_connection()
             return
 
         print(f"Found {len(pending_events)} events pending analysis")
@@ -288,7 +288,22 @@ class EventAnalyzer:
         print("=" * 60)
 
         # 关闭数据库连接
-        await close_mongo_connection()
+        # await close_mongo_connection()
+
+    async def analyze(self, limit: Optional[int] = None, days: Optional[int] = None,
+                     category: Optional[str] = None, event_type: Optional[str] = None,
+                     concurrency: int = 20):
+        """
+        批量分析事件（包含数据库连接管理）
+        """
+        # 连接数据库
+        await connect_to_mongo()
+        
+        try:
+            await self.process_pending_events(limit, days, category, event_type, concurrency)
+        finally:
+            # 关闭数据库连接
+            await close_mongo_connection()
 
 
 async def main():

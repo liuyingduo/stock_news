@@ -79,7 +79,11 @@ uv run python spider/run_init.py
 uv run python spider/run_init.py --days 30
 
 # 增量更新（获取今日公告）
+# 增量更新（获取今日公告）
 uv run python spider/run_update.py
+
+# 实时监控（监听电报并自动分析）
+uv run python spider/update/telegraph_monitor.py
 ```
 
 ### AI 分析

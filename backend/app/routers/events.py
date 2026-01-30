@@ -1,14 +1,21 @@
 from fastapi import APIRouter, HTTPException, Query
 from typing import List, Optional
 from datetime import datetime
-from app.models import EventCreate, EventUpdate, EventResponse, EventCategory, EventType
+from app.models import (
+    EventCreate,
+    EventUpdate,
+    EventResponse,
+    EventCategory,
+    EventType,
+    PaginatedResponse,
+)
 from app.services.database_service import db_service
 from app.services.ai_service import get_ai_service
 
 router = APIRouter(prefix="/api/events", tags=["events"])
 
 
-@router.get("", response_model=List[EventResponse])
+@router.get("", response_model=PaginatedResponse[EventResponse])
 async def get_events(
     skip: int = Query(0, ge=0, description="跳过的记录数"),
     limit: int = Query(20, ge=1, le=100, description="返回的记录数"),
@@ -50,7 +57,7 @@ async def get_events(
         end_date=end_dt,
     )
 
-    return events
+    return PaginatedResponse(items=events, total=total)
 
 
 @router.get("/{event_id}", response_model=dict)

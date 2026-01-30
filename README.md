@@ -139,6 +139,10 @@ uv run python spider/run_update.py
 
 # 2. 分析新数据
 uv run python spider/analyze/analyze_events.py --days 1
+
+# 3. 实时监控（推荐）
+# 自动监听财联社电报并进行分析
+uv run python spider/update/telegraph_monitor.py
 ```
 
 ## API 端点

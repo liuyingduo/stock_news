@@ -1,10 +1,7 @@
-"""
-公告内容抓取器 - 从详情页抓取公告正文
-支持并发抓取以提高速度
-"""
 import requests
 import re
-
+import time
+import random
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Dict, Optional
 
@@ -32,6 +29,9 @@ def fetch_notice_content(url: str) -> str:
     Returns:
         公告正文内容，如果抓取失败返回空字符串
     """
+    # 增加随机延时，模拟人类行为，防止被封
+    time.sleep(random.uniform(0.5, 1.5))
+    
     art_code = extract_art_code(url)
     if not art_code:
         return ""
@@ -96,13 +96,13 @@ def fetch_notice_content(url: str) -> str:
         return ""
 
 
-def fetch_notices_batch(notices: List[dict], max_workers: int = 20) -> List[dict]:
+def fetch_notices_batch(notices: List[dict], max_workers: int = 3) -> List[dict]:
     """
     批量并发抓取公告内容
 
     Args:
         notices: 公告列表，每个公告需要有 'original_url' 和 'title' 字段
-        max_workers: 最大并发数（默认20）
+        max_workers: 最大并发数（默认3，防止被封）
 
     Returns:
         更新后的公告列表，content 字段已填充

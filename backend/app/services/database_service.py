@@ -96,6 +96,16 @@ class DatabaseService:
         except Exception:
             return None
 
+    async def get_event_by_title_date(self, title: str, date: datetime) -> Optional[Dict[str, Any]]:
+        """根据标题和日期获取事件（用于去重）"""
+        event = await self._get_db().events.find_one({
+            "title": title,
+            "announcement_date": date
+        })
+        if event:
+            return self._convert_objectid_to_str(event)
+        return None
+
     async def get_events(
         self,
         skip: int = 0,

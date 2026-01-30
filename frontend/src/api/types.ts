@@ -103,3 +103,8 @@ export interface EventsQuery {
   start_date?: string
   end_date?: string
 }
+
+export interface PaginatedResponse<T> {
+  items: T[]
+  total: number
+}
