@@ -9,10 +9,13 @@
 ## 功能特性
 
 ### 核心功能
-- **事件采集**：使用 Akshare 获取财经新闻、公告、研报等金融事件
-  - 沪深京A股公告（东方财富）
-  - 财联社电报（实时快讯）
-  - 支持初始化历史数据和增量更新
+- **事件采集**：整合三大交易所公告和财联社电报
+  - **上交所** (SSE)：上海证券交易所公告
+  - **深交所** (SZSE)：深圳证券交易所公告
+  - **北交所** (BSE)：北京证券交易所公告
+  - **财联社电报**：实时快讯
+  - **PDF自动下载**：自动下载并解析公告PDF文件
+  - **智能分类**：自动将公告分类到对应的事件类型
 - **AI 分析**：基于智谱 GLM-4-Flash 模型进行智能分析
   - 自动分类（全球大事、政策风向、行业动向、公司动态）
   - 提取影响的原材料、板块、股票
@@ -38,7 +41,12 @@
 - **框架**：FastAPI
 - **数据库**：MongoDB + Motor（异步驱动）
 - **AI**：智谱 GLM-4-Flash
-- **数据源**：Akshare
+- **数据源**：
+  - 上海证券交易所 (SSE)
+  - 深圳证券交易所 (SZSE)
+  - 北京证券交易所 (BSE)
+  - 财联社电报
+- **PDF处理**：PyPDF2 + aiohttp
 - **包管理**：uv
 
 ### 前端
@@ -96,10 +104,10 @@ API: http://localhost:8000
 cd backend
 
 # 初始化数据（获取最近7天的公告）
-uv run python spider/run_init.py
+uv run python spider/update/update_events.py --days 7
 
-# 或指定天数
-uv run python spider/run_init.py --days 30
+# 快速模式（不下载PDF）
+uv run python spider/update/update_events.py --days 7 --no-pdf
 ```
 
 ### 5. AI 分析
@@ -134,16 +142,21 @@ npm run dev
 ```bash
 cd backend
 
-# 1. 增量更新数据
-uv run python spider/run_update.py
+# 1. 增量更新数据（包含三大交易所公告和财联社电报）
+uv run python spider/update/update_events.py
 
 # 2. 分析新数据
 uv run python spider/analyze/analyze_events.py --days 1
-
-# 3. 实时监控（推荐）
-# 自动监听财联社电报并进行分析
-uv run python spider/update/telegraph_monitor.py
 ```
+
+### 数据说明
+
+系统会自动：
+- 获取三大交易所的公告列表
+- 下载PDF文件到 `backend/static/pdfs/` 目录
+- 解析PDF内容为文本
+- 存储到数据库
+- 前端点击公告时跳转到本地PDF
 
 ## API 端点
 
@@ -163,13 +176,19 @@ stock_news/
 │   │   ├── routers/         # API 路由
 │   │   ├── services/        # 业务逻辑
 │   │   │   ├── ai_service.py          # AI 分析服务
-│   │   │   └── database_service.py    # 数据库服务
+│   │   │   ├── database_service.py    # 数据库服务
+│   │   │   └── pdf_service.py         # PDF处理服务
 │   │   └── models/          # 数据模型
 │   ├── spider/              # 数据爬虫和分析
-│   │   ├── init/            # 初始化爬虫
+│   │   ├── common/          # 交易所爬虫
+│   │   │   ├── sse_notice_fetcher.py   # 上交所
+│   │   │   ├── szse_notice_fetcher.py  # 深交所
+│   │   │   └── bse_notice_fetcher.py   # 北交所
 │   │   ├── update/          # 增量更新爬虫
+│   │   │   └── update_events.py       # 整合更新脚本
 │   │   ├── analyze/         # AI 分析脚本
 │   │   └── README.md        # 爬虫详细文档
+│   ├── static/pdfs/         # PDF文件存储
 │   └── pyproject.toml       # 项目依赖
 ├── frontend/                # Vue 3 前端
 │   ├── src/
@@ -183,8 +202,9 @@ stock_news/
 ## 数据流程
 
 1. **数据采集阶段**
-   - 运行初始化/更新脚本获取公告和电报数据
-   - 公告数据自动分类为"公司动态"
+   - 运行更新脚本获取三大交易所公告和财联社电报
+   - 自动下载PDF文件并解析文本内容
+   - 公告数据自动分类到对应事件类型
    - 电报数据标记为待AI分类
 
 2. **AI分析阶段**
@@ -195,18 +215,24 @@ stock_news/
 3. **前端展示**
    - 查询已分析的事件
    - 展示AI分析结果
-   - 支持筛选、搜索、排序
+   - 点击公告查看本地PDF文件
 
 ## 常见问题
 
 ### Q: AI分析如何实现高效率？
 A: 系统将分类、评分、实体提取合并为一次 LLM 调用，相比分开调用减少了 2/3 的 API 请求，显著降低成本并提高速度。
 
+### Q: PDF文件存储在哪里？
+A: PDF文件存储在 `backend/static/pdfs/` 目录，以MD5哈希命名。前端点击公告时会跳转到本地PDF文件。
+
 ### Q: 如何提高AI分析速度？
 A:
 - 使用 `--concurrency 10` 或更高的并发数
 - 使用 `--days` 参数只分析最近的数据
 - 使用 `--category` 参数只分析特定类别的事件
+
+### Q: 如何跳过PDF下载？
+A: 使用 `--no-pdf` 参数可以跳过PDF下载和解析，仅获取公告基本信息。
 
 ## 许可证
 

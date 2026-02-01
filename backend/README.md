@@ -64,26 +64,32 @@ API 文档：`http://localhost:8000/docs`
 
 ### 数据来源
 
-| 接口 | 来源 | 说明 |
-|------|------|------|
-| `stock_notice_report` | 东方财富 | 沪深京A股公告，类型已知 |
-| `stock_info_global_cls` | 财联社 | 电报快讯，需AI分类 |
+| 交易所 | 说明 | 特性 |
+|--------|------|------|
+| **上交所** (SSE) | 上海证券交易所公告 | PDF自动下载，支持多类别 |
+| **深交所** (SZSE) | 深圳证券交易所公告 | PDF自动下载，支持多类别 |
+| **北交所** (BSE) | 北京证券交易所公告 | PDF自动下载，13个类别 |
+| **财联社电报** | 实时快讯 | 需AI分类 |
+
+### PDF处理
+
+系统会自动：
+- 下载交易所公告PDF文件
+- 解析PDF内容为文本
+- 存储到 `static/pdfs/` 目录
+- 前端点击公告时查看本地PDF
 
 ### 数据采集
 
 ```bash
-# 初始化数据（获取最近7天公告）
-uv run python spider/run_init.py
+# 获取最近1天的公告和电报（默认）
+uv run python spider/update/update_events.py
 
-# 获取最近30天公告
-uv run python spider/run_init.py --days 30
+# 获取最近7天的公告
+uv run python spider/update/update_events.py --days 7
 
-# 增量更新（获取今日公告）
-# 增量更新（获取今日公告）
-uv run python spider/run_update.py
-
-# 实时监控（监听电报并自动分析）
-uv run python spider/update/telegraph_monitor.py
+# 快速模式（不下载PDF）
+uv run python spider/update/update_events.py --days 7 --no-pdf
 ```
 
 ### AI 分析
@@ -115,12 +121,12 @@ uv run python spider/analyze/analyze_events.py --category company_updates
 
 ```bash
 # 第一次使用
-uv run python spider/run_init.py --days 30           # 采集数据
-uv run python spider/analyze/analyze_events.py       # AI分析
+uv run python spider/update/update_events.py --days 30        # 采集数据
+uv run python spider/analyze/analyze_events.py              # AI分析
 
 # 日常更新
-uv run python spider/run_update.py                   # 采集最新数据
-uv run python spider/analyze/analyze_events.py --days 1  # 分析新数据
+uv run python spider/update/update_events.py                # 采集最新数据
+uv run python spider/analyze/analyze_events.py --days 1     # 分析新数据
 ```
 
 ## 项目结构
@@ -143,17 +149,20 @@ backend/
 │   │   └── dashboard.py     # 仪表板路由
 │   └── services/            # 业务逻辑
 │       ├── ai_service.py         # AI 分析服务
-│       └── database_service.py   # 数据库服务
+│       ├── database_service.py   # 数据库服务
+│       └── pdf_service.py        # PDF处理服务
 ├── spider/                  # 爬虫和AI分析模块
-│   ├── init/                # 初始化爬虫
-│   │   └── init_events.py   # 获取历史数据
+│   ├── common/              # 交易所爬虫
+│   │   ├── sse_notice_fetcher.py   # 上交所爬虫
+│   │   ├── szse_notice_fetcher.py  # 深交所爬虫
+│   │   └── bse_notice_fetcher.py   # 北交所爬虫
 │   ├── update/              # 更新爬虫
-│   │   └── update_events.py # 增量更新数据
+│   │   ├── update_events.py        # 整合更新脚本
+│   │   └── README.md               # 详细使用文档
 │   ├── analyze/             # AI 分析脚本
-│   │   └── analyze_events.py    # 批量AI分析（含分类）
-│   ├── run_init.py          # 便捷初始化脚本
-│   ├── run_update.py        # 便捷更新脚本
-│   └── README.md            # 详细使用文档
+│   │   └── analyze_events.py       # 批量AI分析（含分类）
+│   └── README.md            # 爬虫使用文档
+├── static/pdfs/             # PDF文件存储目录
 ├── pyproject.toml           # 项目依赖
 └── .env                     # 环境变量
 ```
@@ -177,6 +186,9 @@ backend/
 ### 仪表板
 - `GET /api/dashboard/stats` - 获取仪表板统计数据
 
+### 静态文件
+- `/static/pdfs/{filename}` - 访问本地PDF文件
+
 ### 系统
 - `GET /` - 根路径
 - `GET /health` - 健康检查
@@ -187,6 +199,8 @@ backend/
 2. **数据采集和AI分析分离**：爬虫脚本不会自动进行AI分析，需要单独运行分析脚本
 3. **数据库连接**：确保MongoDB服务正在运行
 4. **AI服务配置**：使用AI分析功能前，请确保 `.env` 文件中配置了 `ZHIPU_API_KEY`
+5. **PDF存储**：PDF文件会占用磁盘空间，定期清理 `static/pdfs/` 目录
+6. **网络稳定**：PDF下载需要稳定的网络连接，如遇问题可使用 `--no-pdf` 跳过
 
 ## 详细文档
 
