@@ -33,10 +33,10 @@ class EventAnalyzer:
         
         # 分类映射
         self.category_mapping = {
-            "global_events": EventCategory.GLOBAL_EVENTS,
-            "policy_trends": EventCategory.POLICY_TRENDS,
-            "industry_trends": EventCategory.INDUSTRY_TRENDS,
-            "company_updates": EventCategory.COMPANY_UPDATES,
+            "global_macro": EventCategory.GLOBAL_MACRO,
+            "policy": EventCategory.POLICY_REGULATION,
+            "industry": EventCategory.INDUSTRY_SECTOR,
+            "company": EventCategory.COMPANY_SPECIFIC,
         }
         
         self.type_mapping = {
@@ -131,7 +131,7 @@ class EventAnalyzer:
                 type_str = result.get("event_type")
                 
                 if cat_str and type_str:
-                    new_category = self.category_mapping.get(cat_str, EventCategory.COMPANY_UPDATES)
+                    new_category = self.category_mapping.get(cat_str, EventCategory.COMPANY_SPECIFIC)
                     new_type = self.type_mapping.get(type_str, EventType.OTHER)
                     
                     update_dict["event_category"] = new_category
@@ -314,7 +314,7 @@ async def main():
     parser.add_argument("--limit", type=int, default=None, help="最多分析多少条事件（默认：不限制）")
     parser.add_argument("--days", type=int, default=None, help="只分析最近N天的事件")
     parser.add_argument("--category", type=str, default=None,
-                       choices=["global_events", "policy_trends", "industry_trends", "company_updates"],
+                       choices=["global_macro", "policy", "industry", "company"],
                        help="按事件类别筛选")
     parser.add_argument("--event-type", type=str, default=None, help="按事件类型筛选")
     parser.add_argument("--concurrency", "-c", type=int, default=20,

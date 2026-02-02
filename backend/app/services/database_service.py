@@ -28,7 +28,7 @@ class DatabaseService:
         # 事件集合索引
         await self._get_db().events.create_index("announcement_date")
         await self._get_db().events.create_index("event_category")
-        await self._get_db().events.create_index("event_type")
+        await self._get_db().events.create_index("event_types")
         await self._get_db().events.create_index("ai_analysis.affected_sectors.code")
         await self._get_db().events.create_index("ai_analysis.affected_stocks.code")
         await self._get_db().events.create_index([("announcement_date", -1)])
@@ -139,7 +139,7 @@ class DatabaseService:
             query["event_category"] = category
 
         if event_type:
-            query["event_type"] = event_type
+            query["event_types"] = event_type
 
         if start_date or end_date:
             date_query = {}

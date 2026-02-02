@@ -377,21 +377,75 @@ class EventUpdater:
                 event_category = event_data.get("event_category")
 
                 if event_category is None:
-                    event_category = EventCategory.COMPANY_UPDATES
+                    event_category = EventCategory.COMPANY_SPECIFIC
 
-                # 使用本地PDF URL（如果有）
-                original_url = event_data.get("local_pdf_url") or event_data.get("original_url", "")
+                # 优先使用原始URL
+                original_url = event_data.get("original_url", "")
+                # 如果都没有，尝试使用 local_pdf_url (虽然 normally cleaned up)
+                if not original_url and event_data.get("local_pdf_url"):
+                    original_url = event_data.get("local_pdf_url")
+
+                # AI 分析
+                ai_analysis = None
+                event_types = []
+                
+                try:
+                    from app.services.ai_service import get_ai_service
+                    ai_svc = get_ai_service()
+                    if ai_svc:
+                        print(f"  AI Analyzing: {title[:20]}...")
+                        # 组合标题和内容供分析
+                        analysis_text = f"标题: {title}\n内容: {event_data.get('content', '')[:1000]}"
+                        
+                        analysis_result = await ai_svc.analyze_and_classify(
+                            title, 
+                            event_data.get('content', '')[:3000], # 限制长度避免过长
+                            needs_classification=True
+                        )
+                        
+                        if analysis_result:
+                            ai_analysis = analysis_result.get("ai_analysis")
+                            # 如果 AI 返回了分类，优先使用 AI 的分类
+                            ai_category = analysis_result.get("event_category")
+                            if ai_category:
+                                try:
+                                    # 尝试匹配枚举
+                                    event_category = EventCategory(ai_category)
+                                except ValueError:
+                                    print(f"  Warning: AI returned unknown category {ai_category}, using default")
+                                    
+                            ai_types = analysis_result.get("event_types", [])
+                            if ai_types:
+                                # 尝试转换类型
+                                clean_types = []
+                                for t in ai_types:
+                                    try:
+                                        clean_types.append(EventType(t))
+                                    except ValueError:
+                                        continue
+                                if clean_types:
+                                    event_types = clean_types
+
+                except Exception as e:
+                    print(f"  AI Analysis failed: {e}")
+
+                # 如果 AI 没有返回类型，尝试使用映射的类型作为默认值
+                if not event_types:
+                     mapped_type = event_data.get("event_type")
+                     if mapped_type and mapped_type != EventType.OTHER:
+                         event_types.append(mapped_type)
+                     else:
+                        event_types.append(EventType.OTHER)
 
                 event_create = EventCreate(
                     title=title,
                     content=event_data.get("content", ""),
                     event_category=event_category,
-                    event_type=event_type,
+                    event_types=event_types, # 新增字段
                     announcement_date=announcement_date,
                     source=event_data.get("source", ""),
                     original_url=original_url,
-                    stock_code=event_data.get("stock_code", ""),
-                    stock_name=event_data.get("stock_name", ""),
+                    ai_analysis=ai_analysis # 新增
                 )
 
                 await db_service.create_event(event_create)
@@ -494,14 +548,9 @@ class EventUpdater:
                 # 4. 转换并保存
                 all_events = []
                 # 注意：这里我们只保存 new_exchange_notices 中的数据
-                # 之前的逻辑是遍历所有的 exchange_notices，但这会导致重复尝试保存（虽然保存层也有去重）
-                # 既然我们在前面已经过滤了，这里只处理 new_exchange_notices 即可高效入库
                 for exchange_name, notices in new_exchange_notices.items():
                     for notice in notices:
                         try:
-                            bulletin_type = notice.get("bulletin_type", "其他")
-                            event_type = self._map_bulletin_type_to_event_type(exchange_name, bulletin_type)
-
                             event_data = {
                                 "title": notice.get("title", ""),
                                 "content": notice.get("content", notice.get("title", "")),
@@ -509,10 +558,8 @@ class EventUpdater:
                                 "source": exchange_name,
                                 "original_url": notice.get("url", ""),
                                 "local_pdf_url": notice.get("local_pdf_url", ""),
-                                "event_type": event_type,
-                                "event_category": EventCategory.COMPANY_UPDATES,
-                                "stock_code": notice.get("stock_code", ""),
-                                "stock_name": notice.get("stock_name", ""),
+                                "event_types": [], # 默认空，由AI填充
+                                "event_category": EventCategory.COMPANY_SPECIFIC, # 默认个股动态，或根据实际调整
                             }
                             all_events.append(event_data)
                         except Exception as e:
@@ -544,15 +591,6 @@ class EventUpdater:
                 telegraphs = await self.fetch_cls_telegraph()
                 
                 if telegraphs:
-                    # 直接保存（fetch_cls_telegraph已经返回了正确的格式吗？
-                    # 查看 fetch_cls_telegraph 实现: Returns list[dict]
-                    # process_and_save_events 需要 list[dict] 且包含 event_category 等字段
-                    # fetch_cls_telegraph 应该已经处理好了格式? 
-                    # 之前的代码直接调用 self.process_and_save_events(all_events) 其中all_events包含telegraphs
-                    # 所以格式应该是兼容的。
-                    
-                    # 为了不刷屏，只在有数据时打印？或者定期打印心跳?
-                    # 只保存新增的
                     saved_count = await self.process_and_save_events(telegraphs)
                     if saved_count > 0:
                          print(f"[{datetime.now().strftime('%H:%M:%S')}] 财联社更新: 新增 {saved_count} 条")

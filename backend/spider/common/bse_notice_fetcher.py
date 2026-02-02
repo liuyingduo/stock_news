@@ -277,6 +277,7 @@ class BSENoticeFetcher:
                     raw_type_code = record.get("xxzrlx", "")
                     bulletin_type = self.code_to_category.get(raw_type_code, raw_type_code)
 
+                    title = record.get("disclosureTitle", "")
                     notice = {
                         "title": title,
                         "url": full_url,
