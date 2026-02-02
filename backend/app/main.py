@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
@@ -6,11 +7,20 @@ from app.routers import events, sectors, stocks, dashboard
 import uvicorn
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # 启动时连接 MongoDB
+    await connect_to_mongo()
+    yield
+    # 关闭时断开 MongoDB 连接
+    await close_mongo_connection()
+
 app = FastAPI(
     title="Stock News Analysis API",
     description="金融事件获取与分析系统 API",
     version="0.1.0",
     debug=settings.debug,
+    lifespan=lifespan,
 )
 
 # CORS 配置
@@ -27,19 +37,6 @@ app.include_router(events.router)
 app.include_router(sectors.router)
 app.include_router(stocks.router)
 app.include_router(dashboard.router)
-
-
-@app.on_event("startup")
-async def startup_db_client():
-    """启动时连接 MongoDB"""
-    await connect_to_mongo()
-
-
-@app.on_event("shutdown")
-async def shutdown_db_client():
-    """关闭时断开 MongoDB 连接"""
-    await close_mongo_connection()
-
 
 @app.get("/")
 async def root():
