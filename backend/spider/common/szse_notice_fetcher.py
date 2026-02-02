@@ -32,6 +32,33 @@ class SZSENoticeFetcher:
             "X-Requested-With": "XMLHttpRequest",
         })
 
+        # 公告类别定义 (代码 -> 名称)
+        self.categories = {
+            "010301": "年度报告",
+            "010303": "半年度报告",
+            "010305": "一季度报告",
+            "010307": "三季度报告",
+            "0102": "首次公开发行及上市",
+            "0105": "配股",
+            "0107": "增发",
+            "0109": "可转换债券",
+            "0110": "权证相关公告",
+            "0111": "其它融资",
+            "0113": "权益分派与限制出售股份上市",
+            "0115": "股权变动",
+            "0117": "交易",
+            "0119": "股东会",
+            "0121": "澄清、风险提示、业绩预告事项",
+            "0125": "特别处理和退市",
+            "0127": "补充及更正",
+            "0129": "中介机构报告",
+            "0131": "上市公司制度",
+            "0139": "债券公告",
+            "0123": "其它重大事项",
+            "01239901": "董事会公告",
+            "01239910": "监事会公告",
+        }
+
     def _fetch_page(
         self,
         start_date: str,
@@ -106,203 +133,119 @@ class SZSENoticeFetcher:
     ) -> List[dict]:
         """
         获取指定日期的所有公告（支持自动翻页）
+        注意：如果不指定 big_category_ids，将遍历所有已知类别以获取准确的分类代码
 
         Args:
             date: 日期对象
             big_category_ids: 大类ID列表（可选）
 
         Returns:
-            公告列表，每个公告包含:
-                - title: 公告标题
-                - url: 公告详情页 URL
-                - stock_code: 股票代码
-                - stock_name: 股票名称
-                - announcement_date: 公告日期
-                - bulletin_type: 公告类型（从标题推断）
+            公告列表
         """
         date_str = date.strftime("%Y-%m-%d")
         all_notices = []
-        page_no = 1
-        page_size = 50
+        
+        # 确定要获取的类别列表
+        target_categories = big_category_ids if big_category_ids else list(self.categories.keys())
+        
+        print(f"Fetching SZSE notices for {date_str} (iterating {len(target_categories)} categories)...")
 
-        category_info = f" (category: {big_category_ids})" if big_category_ids else ""
-        print(f"Fetching SZSE notices for {date_str}{category_info}...")
+        # 遍历每个类别进行获取
+        for category_id in target_categories:
+            category_name = self.categories.get(category_id, category_id)
+            # print(f"  Fetching category: {category_name} ({category_id})")
+            
+            page_no = 1
+            page_size = 50
+            
+            while True:
+                # 获取当前页数据
+                data = self._fetch_page(
+                    date_str,
+                    date_str,
+                    page_no,
+                    page_size,
+                    [category_id]
+                )
 
-        while True:
-            # 获取当前页数据
-            data = self._fetch_page(
-                date_str,
-                date_str,
-                page_no,
-                page_size,
-                big_category_ids
-            )
+                if not data:
+                    break
 
-            if not data:
-                # 如果第一页就失败，返回空列表
-                if page_no == 1:
-                    print(f"No data found for {date_str}")
-                    return []
-                # 否则认为已经获取完所有页
-                break
+                # 获取公告总数
+                total_count = data.get("announceCount", 0)
+                
+                # 解析公告数据
+                records = data.get("data", [])
 
-            # 获取公告总数
-            total_count = data.get("announceCount", 0)
-            if page_no == 1 and total_count > 0:
-                print(f"Total records: {total_count}")
+                if not records:
+                    break
 
-            # 解析公告数据
-            records = data.get("data", [])
-
-            if not records:
-                print(f"No records found on page {page_no}")
-                break
-
-            # 处理公告数据
-            for record in records:
-                try:
-                    # 获取相对路径并拼接完整 URL
-                    attach_path = record.get("attachPath", "")
-                    if attach_path.startswith("/"):
-                        full_url = "https://disc.static.szse.cn/download" + attach_path
-                    else:
-                        full_url = attach_path
-
-                    # 获取股票代码和名称（可能是数组）
-                    sec_codes = record.get("secCode", [])
-                    sec_names = record.get("secName", [])
-
-                    if sec_codes:
-                        stock_code = sec_codes[0] if sec_codes else ""
-                    else:
-                        stock_code = ""
-
-                    if sec_names:
-                        stock_name = sec_names[0] if sec_names else ""
-                    else:
-                        stock_name = ""
-
-                    # 解析发布时间
-                    publish_time_str = record.get("publishTime", "")
+                # 处理公告数据
+                for record in records:
                     try:
-                        publish_time = datetime.strptime(publish_time_str, "%Y-%m-%d %H:%M:%S")
-                    except:
-                        publish_time = date
+                        # 获取相对路径并拼接完整 URL
+                        attach_path = record.get("attachPath", "")
+                        if attach_path.startswith("/"):
+                            full_url = "https://disc.static.szse.cn/download" + attach_path
+                        else:
+                            full_url = attach_path
 
-                    # 从标题推断公告类型
-                    bulletin_type = self._infer_bulletin_type_from_title(record.get("title", ""))
+                        # 获取股票代码和名称（可能是数组）
+                        sec_codes = record.get("secCode", [])
+                        sec_names = record.get("secName", [])
 
-                    notice = {
-                        "title": record.get("title", ""),
-                        "url": full_url,
-                        "stock_code": stock_code,
-                        "stock_name": stock_name,
-                        "announcement_date": publish_time,
-                        "bulletin_type": bulletin_type,
-                        "source": "深圳证券交易所",
-                        "ann_id": record.get("annId", ""),
-                    }
+                        if sec_codes:
+                            stock_code = sec_codes[0] if sec_codes else ""
+                        else:
+                            stock_code = ""
 
-                    # 只返回有效公告（有标题和 URL）
-                    if notice["title"] and notice["url"]:
-                        all_notices.append(notice)
+                        if sec_names:
+                            stock_name = sec_names[0] if sec_names else ""
+                        else:
+                            stock_name = ""
 
-                except Exception as e:
-                    print(f"Error parsing record: {e}")
-                    continue
+                        # 解析发布时间
+                        publish_time_str = record.get("publishTime", "")
+                        try:
+                            publish_time = datetime.strptime(publish_time_str, "%Y-%m-%d %H:%M:%S")
+                        except:
+                            publish_time = date
 
-            print(f"Fetched page {page_no}, got {len(records)} records (total: {len(all_notices)})")
+                        # 使用当前遍历的类别名称作为 bulletin_type
+                        bulletin_type = category_name
 
-            # 检查是否需要继续翻页
-            # 如果返回的记录数少于 page_size，说明已经是最后一页
-            if len(records) < page_size:
-                break
+                        notice = {
+                            "title": record.get("title", ""),
+                            "url": full_url,
+                            "stock_code": stock_code,
+                            "stock_name": stock_name,
+                            "announcement_date": publish_time,
+                            "bulletin_type": bulletin_type,
+                            "source": "深圳证券交易所",
+                            "ann_id": record.get("annId", ""),
+                        }
 
-            # 如果已经获取了所有记录，停止翻页
-            if total_count and len(all_notices) >= total_count:
-                break
+                        # 只返回有效公告（有标题和 URL）
+                        if notice["title"] and notice["url"]:
+                            all_notices.append(notice)
 
-            page_no += 1
+                    except Exception as e:
+                        print(f"Error parsing record: {e}")
+                        continue
 
-            # 添加页间延时
-            time.sleep(random.uniform(0.5, 1.0))
+                # 检查是否需要继续翻页
+                if len(records) < page_size:
+                    break
+                
+                # 防止死循环
+                if page_no > 50:
+                    break
+
+                page_no += 1
+                time.sleep(random.uniform(0.2, 0.5))
 
         print(f"Total fetched {len(all_notices)} notices for {date_str}")
         return all_notices
-
-    def fetch_notices_by_date_range(
-        self,
-        start_date: datetime,
-        end_date: datetime,
-        big_category_ids: Optional[List[str]] = None
-    ) -> List[dict]:
-        """
-        获取日期范围内的所有公告
-
-        Args:
-            start_date: 开始日期
-            end_date: 结束日期
-            big_category_ids: 大类ID列表（可选）
-
-        Returns:
-            公告列表
-        """
-        all_notices = []
-        current_date = start_date
-
-        while current_date <= end_date:
-            daily_notices = self.fetch_notices_by_date(current_date, big_category_ids)
-            all_notices.extend(daily_notices)
-            current_date += timedelta(days=1)
-
-        return all_notices
-
-    def _infer_bulletin_type_from_title(self, title: str) -> str:
-        """
-        从标题推断公告类型
-
-        Args:
-            title: 公告标题
-
-        Returns:
-            公告类型描述
-        """
-        # 定义关键词映射
-        type_keywords = {
-            "财务报告": ["年度报告", "半年度报告", "季度报告", "业绩报告", "财务报表"],
-            "业绩预告": ["业绩预告", "业绩预报", "业绩预测"],
-            "业绩快报": ["业绩快报"],
-            "分红": ["分红", "利润分配", "派息", "股利"],
-            "增发": ["增发", "非公开发行", "定向发行"],
-            "配股": ["配股"],
-            "可转债": ["可转债", "转债"],
-            "公司债券": ["公司债券", "公司债"],
-            "重大事项": ["重大事项", "重大合同", "重大投资", "重大资产"],
-            "资产重组": ["重组", "资产重组", "重大资产重组", "发行股份购买资产"],
-            "收购兼并": ["收购", "兼并", "并购"],
-            "股权变动": ["股权变动", "持股变动", "股份变动"],
-            "减持": ["减持"],
-            "增持": ["增持"],
-            "董事会": ["董事会", "董事会决议"],
-            "监事会": ["监事会", "监事会决议"],
-            "股东大会": ["股东大会", "股东会决议"],
-            "高管变动": ["高级管理人员", "高管", "辞职", "聘任"],
-            "人事变动": ["人事变动", "人事调整"],
-            "名称变更": ["名称变更", "更名"],
-            "经营范围变更": ["经营范围", "营业范围"],
-            "风险提示": ["风险提示", "风险警示"],
-            "退市风险": ["退市风险", "终止上市", "暂停上市"],
-            "诉讼": ["诉讼", "仲裁"],
-            "处罚": ["处罚", "行政处罚", "监管"],
-        }
-
-        # 检查标题中的关键词
-        for bulletin_type, keywords in type_keywords.items():
-            for keyword in keywords:
-                if keyword in title:
-                    return bulletin_type
-
-        return "其他"
 
 
 def fetch_szse_notices_by_date(
@@ -323,32 +266,4 @@ def fetch_szse_notices_by_date(
     return fetcher.fetch_notices_by_date(date, big_category_ids)
 
 
-# 测试代码（完成后删除）
-if __name__ == "__main__":
-    # 测试获取最近的公告
-    test_date = datetime.now() - timedelta(days=1)
-    print(f"Testing SZSE notice fetcher for {test_date.strftime('%Y-%m-%d')}")
 
-    fetcher = SZSENoticeFetcher()
-
-    # 测试获取所有类别
-    print("\n=== 测试1: 获取所有类别 ===")
-    notices = fetcher.fetch_notices_by_date(test_date)
-
-    print(f"\n=== Test Results ===")
-    print(f"Total notices: {len(notices)}")
-
-    if notices:
-        print("\nFirst 5 notices:")
-        for i, notice in enumerate(notices[:5], 1):
-            print(f"\n{i}. {notice['title'][:50]}...")
-            print(f"   Code: {notice['stock_code']}")
-            print(f"   Name: {notice['stock_name']}")
-            print(f"   Type: {notice['bulletin_type']}")
-            print(f"   Date: {notice['announcement_date'].strftime('%Y-%m-%d %H:%M:%S')}")
-            print(f"   URL: {notice['url'][:80]}..." if len(notice['url']) > 80 else f"   URL: {notice['url']}")
-
-    # 测试获取特定类别
-    print("\n\n=== 测试2: 获取特定类别 (0129) ===")
-    notices_category = fetcher.fetch_notices_by_date(test_date, big_category_ids=["0129"])
-    print(f"Total notices (category 0129): {len(notices_category)}")

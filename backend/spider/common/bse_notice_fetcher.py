@@ -64,7 +64,24 @@ class BSENoticeFetcher:
                 "9504-4411", "9504-4412", "9504-4413", "9504-4414", "9504-4415",
                 "9504-4416", "9504-4417", "9504-4418", "9504-4499"
             ],
+            "股份回购类": [
+                "9504-3501", "9504-3502", "9504-3503", "9504-3504", "9504-3505",
+                "9504-3506", "9504-3507", "9504-3508", "9504-3509", "9504-3510",
+                "9504-3511", "9504-3512", "9504-3513", "9504-3539", "9504-3599"
+            ],
+            "公司经营类": [
+                "9504-0503", "9504-0502", "9504-0504", "9504-2404", "9504-2405",
+                "9504-2406", "9504-2407", "9504-2408", "9504-2409", "9504-0501",
+                "9504-2411", "9504-2412", "9504-2413", "9504-2414", "9504-2471",
+                "9504-2472", "9504-2473", "9504-2474", "9504-2499"
+            ],
         }
+
+        # 生成代码到类别的反向映射
+        self.code_to_category = {}
+        for category, codes in self.categories.items():
+            for code in codes:
+                self.code_to_category[code] = category
 
     def _parse_jsonp(self, jsonp_str: str, callback_name: str) -> Optional[dict]:
         """
@@ -256,9 +273,9 @@ class BSENoticeFetcher:
                     except:
                         publish_date = date
 
-                    # 从公告标题推断类型
-                    title = record.get("disclosureTitle", "")
-                    bulletin_type = self._infer_bulletin_type_from_title(title)
+                    # 使用原始公告类型代码获取文本描述
+                    raw_type_code = record.get("xxzrlx", "")
+                    bulletin_type = self.code_to_category.get(raw_type_code, raw_type_code)
 
                     notice = {
                         "title": title,
@@ -268,7 +285,7 @@ class BSENoticeFetcher:
                         "announcement_date": publish_date,
                         "bulletin_type": bulletin_type,
                         "source": "北京证券交易所",
-                        "ann_id": record.get("xxzrlx", ""),
+                        "ann_id": raw_type_code,
                         "file_ext": record.get("fileExt", ""),
                     }
 
@@ -321,44 +338,6 @@ class BSENoticeFetcher:
             current_date += timedelta(days=1)
 
         return all_notices
-
-    def _infer_bulletin_type_from_title(self, title: str) -> str:
-        """
-        从标题推断公告类型
-
-        Args:
-            title: 公告标题
-
-        Returns:
-            公告类型描述
-        """
-        # 定义关键词映射
-        type_keywords = {
-            "年度报告": ["年度报告", "年报"],
-            "半年度报告": ["半年度报告", "半年报", "中期报告"],
-            "季度报告": ["季度报告", "一季度报告", "三季度报告", "季报"],
-            "业绩预告": ["业绩预告", "业绩预报"],
-            "业绩快报": ["业绩快报"],
-            "董事会决议": ["董事会决议", "董事会"],
-            "监事会决议": ["监事会决议", "监事会"],
-            "股东大会决议": ["股东大会决议", "股东大会", "股东会"],
-            "权益分派": ["权益分派", "利润分配", "分红", "派息"],
-            "股权激励": ["股权激励", "激励计划", "限制性股票"],
-            "员工持股": ["员工持股"],
-            "公开发行": ["公开发行", "发行公告", "招股说明书"],
-            "重大事项": ["重大事项", "重大合同"],
-            "资产重组": ["资产重组", "重组"],
-            "收购": ["收购", "并购"],
-            "增发": ["定向发行", "股票发行"],
-        }
-
-        # 检查标题中的关键词
-        for bulletin_type, keywords in type_keywords.items():
-            for keyword in keywords:
-                if keyword in title:
-                    return bulletin_type
-
-        return "其他"
 
 
 def fetch_bse_notices_by_date(

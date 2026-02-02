@@ -204,93 +204,141 @@ class EventUpdater:
         Returns:
             EventType枚举值
         """
-        # 北交所映射
+        # 北交所映射 (使用文本描述精准匹配)
         if "北京" in source or "北交所" in source:
-            type_mapping = {
+            bse_mapping = {
                 "年度报告": EventType.FINANCIAL_REPORT,
                 "半年度报告": EventType.FINANCIAL_REPORT,
-                "季度报告": EventType.FINANCIAL_REPORT,
-                "业绩预告": EventType.FINANCIAL_REPORT,
-                "业绩快报": EventType.FINANCIAL_REPORT,
+                "一季度报告": EventType.FINANCIAL_REPORT,
+                "三季度报告": EventType.FINANCIAL_REPORT,
+                "业绩预告、业绩快报类": EventType.FINANCIAL_REPORT,
                 "董事会决议": EventType.MAJOR_EVENT,
                 "监事会决议": EventType.MAJOR_EVENT,
                 "股东大会决议": EventType.MAJOR_EVENT,
                 "权益分派": EventType.FINANCING_ANNOUNCEMENT,
-                "股权激励": EventType.SHAREHOLDING_CHANGE,
-                "员工持股": EventType.SHAREHOLDING_CHANGE,
-                "公开发行": EventType.FINANCING_ANNOUNCEMENT,
-                "重大事项": EventType.MAJOR_EVENT,
-                "资产重组": EventType.ASSET_RESTRUCTURING,
-                "收购": EventType.ASSET_RESTRUCTURING,
-                "增发": EventType.FINANCING_ANNOUNCEMENT,
+                "股权激励类": EventType.SHAREHOLDING_CHANGE,
+                "员工持股计划类": EventType.SHAREHOLDING_CHANGE,
+                "公开发行类": EventType.FINANCING_ANNOUNCEMENT,
+                "募集资金管理类": EventType.FINANCING_ANNOUNCEMENT,
+                "股份回购类": EventType.SHAREHOLDING_CHANGE,
+                "公司经营类": EventType.INFO_CHANGE,
             }
-        # 深交所映射
+            return bse_mapping.get(bulletin_type, EventType.OTHER)
+
+        # 深交所映射 (使用文本描述精准匹配)
         elif "深圳" in source or "深交所" in source:
-            type_mapping = {
-                "财务报告": EventType.FINANCIAL_REPORT,
-                "业绩预告": EventType.FINANCIAL_REPORT,
-                "业绩快报": EventType.FINANCIAL_REPORT,
-                "分红": EventType.FINANCING_ANNOUNCEMENT,
-                "增发": EventType.FINANCING_ANNOUNCEMENT,
+            szse_mapping = {
+                "年度报告": EventType.FINANCIAL_REPORT,
+                "半年度报告": EventType.FINANCIAL_REPORT,
+                "一季度报告": EventType.FINANCIAL_REPORT,
+                "三季度报告": EventType.FINANCIAL_REPORT,
+                "首次公开发行及上市": EventType.FINANCING_ANNOUNCEMENT,
                 "配股": EventType.FINANCING_ANNOUNCEMENT,
-                "可转债": EventType.FINANCING_ANNOUNCEMENT,
-                "公司债券": EventType.FINANCING_ANNOUNCEMENT,
-                "重大事项": EventType.MAJOR_EVENT,
-                "资产重组": EventType.ASSET_RESTRUCTURING,
-                "收购兼并": EventType.ASSET_RESTRUCTURING,
+                "增发": EventType.FINANCING_ANNOUNCEMENT,
+                "可转换债券": EventType.FINANCING_ANNOUNCEMENT,
+                "权证相关公告": EventType.FINANCING_ANNOUNCEMENT,
+                "其它融资": EventType.FINANCING_ANNOUNCEMENT,
+                "权益分派与限制出售股份上市": EventType.FINANCING_ANNOUNCEMENT,
                 "股权变动": EventType.SHAREHOLDING_CHANGE,
-                "减持": EventType.SHAREHOLDING_CHANGE,
-                "增持": EventType.SHAREHOLDING_CHANGE,
-                "董事会": EventType.MAJOR_EVENT,
-                "监事会": EventType.MAJOR_EVENT,
-                "股东大会": EventType.MAJOR_EVENT,
-                "高管变动": EventType.INFO_CHANGE,
-                "人事变动": EventType.INFO_CHANGE,
-                "名称变更": EventType.INFO_CHANGE,
-                "经营范围变更": EventType.INFO_CHANGE,
-                "风险提示": EventType.RISK_WARNING,
-                "退市风险": EventType.RISK_WARNING,
-                "诉讼": EventType.RISK_WARNING,
-                "处罚": EventType.RISK_WARNING,
+                "交易": EventType.MAJOR_EVENT,
+                "股东会": EventType.MAJOR_EVENT,
+                "澄清、风险提示、业绩预告事项": EventType.MAJOR_EVENT,
+                "特别处理和退市": EventType.RISK_WARNING,
+                "补充及更正": EventType.INFO_CHANGE,
+                "中介机构报告": EventType.OTHER,
+                "上市公司制度": EventType.OTHER,
+                "债券公告": EventType.FINANCING_ANNOUNCEMENT,
+                "其它重大事项": EventType.MAJOR_EVENT,
+                "董事会公告": EventType.MAJOR_EVENT,
+                "监事会公告": EventType.MAJOR_EVENT,
             }
-        # 上交所映射
+            return szse_mapping.get(bulletin_type, EventType.OTHER)
+        # 上交所映射 (使用原始文字描述精准匹配)
         else:  # 上海证券交易所
-            type_mapping = {
-                "年报": EventType.FINANCIAL_REPORT,
-                "半年报": EventType.FINANCIAL_REPORT,
-                "季报": EventType.FINANCIAL_REPORT,
-                "业绩预告": EventType.FINANCIAL_REPORT,
-                "业绩快报": EventType.FINANCIAL_REPORT,
-                "分红": EventType.FINANCING_ANNOUNCEMENT,
-                "增发": EventType.FINANCING_ANNOUNCEMENT,
-                "配股": EventType.FINANCING_ANNOUNCEMENT,
-                "可转债": EventType.FINANCING_ANNOUNCEMENT,
-                "重大事项": EventType.MAJOR_EVENT,
-                "资产重组": EventType.ASSET_RESTRUCTURING,
-                "收购": EventType.ASSET_RESTRUCTURING,
-                "股权变动": EventType.SHAREHOLDING_CHANGE,
-                "减持": EventType.SHAREHOLDING_CHANGE,
-                "增持": EventType.SHAREHOLDING_CHANGE,
-                "董事会": EventType.MAJOR_EVENT,
-                "监事会": EventType.MAJOR_EVENT,
-                "股东大会": EventType.MAJOR_EVENT,
-                "人事变动": EventType.INFO_CHANGE,
-                "风险提示": EventType.RISK_WARNING,
-                "退市": EventType.RISK_WARNING,
-                "诉讼": EventType.RISK_WARNING,
-                "处罚": EventType.RISK_WARNING,
+            sse_mapping = {
+                # 1. 定期报告
+                "定期报告": EventType.FINANCIAL_REPORT,
+                # 2. 董事会和监事会
+                "董事会和监事会": EventType.MAJOR_EVENT,
+                # 3. 股东会
+                "股东会": EventType.MAJOR_EVENT,
+                # 4. 应当披露的交易
+                "应当披露的交易": EventType.MAJOR_EVENT,
+                # 5. 首次公开发行
+                "首次公开发行": EventType.FINANCING_ANNOUNCEMENT,
+                # 6. 关联交易
+                "关联交易": EventType.MAJOR_EVENT,
+                # 7. 对外担保
+                "对外担保": EventType.MAJOR_EVENT,
+                # 8. 募集资金使用与管理
+                "募集资金使用与管理": EventType.FINANCING_ANNOUNCEMENT,
+                # 9. 业绩预告、业绩快报和盈利预测
+                "业绩预告、业绩快报和盈利预测": EventType.FINANCIAL_REPORT,
+                # 10. 利润分配和资本公积金转增股本
+                "利润分配和资本公积金转增股本": EventType.FINANCING_ANNOUNCEMENT,
+                # 11. 股票交易异常波动和澄清
+                "股票交易异常波动和澄清": EventType.RISK_WARNING,
+                # 12. 股份上市流通与股本变动
+                "股份上市流通与股本变动": EventType.SHAREHOLDING_CHANGE,
+                # 13. 股东增持或减持股份
+                "股东增持或减持股份": EventType.SHAREHOLDING_CHANGE,
+                # 14. 权益变动报告书和（要约）收购
+                "权益变动报告书和（要约）收购": EventType.ASSET_RESTRUCTURING,
+                # 15. 股权型再融资
+                "股权型再融资": EventType.FINANCING_ANNOUNCEMENT,
+                # 16. 其他再融资
+                "其他再融资": EventType.FINANCING_ANNOUNCEMENT,
+                # 17. 重大资产重组
+                "重大资产重组": EventType.ASSET_RESTRUCTURING,
+                # 18. 吸收合并
+                "吸收合并": EventType.ASSET_RESTRUCTURING,
+                # 19. 回购股份
+                "回购股份": EventType.SHAREHOLDING_CHANGE,
+                # 20. 可转换公司债
+                "可转换公司债": EventType.FINANCING_ANNOUNCEMENT,
+                # 21. 股权激励及员工持股计划
+                "股权激励及员工持股计划": EventType.SHAREHOLDING_CHANGE,
+                # 22. 诉讼和仲裁
+                "诉讼和仲裁": EventType.RISK_WARNING,
+                # 23. 股东股份被质押冻结或司法拍卖
+                "股东股份被质押冻结或司法拍卖": EventType.RISK_WARNING,
+                # 24. 破产与重整
+                "破产与重整": EventType.RISK_WARNING,
+                # 25. 其他重大事项
+                "其他重大事项": EventType.MAJOR_EVENT,
+                # 26. 公司重要基本信息变化
+                "公司重要基本信息变化": EventType.INFO_CHANGE,
+                # 27. 风险警示
+                "风险警示": EventType.RISK_WARNING,
+                # 28. 暂停、恢复和终止上市
+                "暂停、恢复和终止上市": EventType.RISK_WARNING,
+                # 29. 补充更正公告
+                "补充更正公告": EventType.INFO_CHANGE,
+                # 30. 规范运作
+                "规范运作": EventType.OTHER,
+                # 31. 中介机构报告
+                "中介机构报告": EventType.OTHER,
+                # 32. 停复牌提示性公告
+                "停复牌提示性公告": EventType.INFO_CHANGE,
+                # 33. 优先股
+                "优先股": EventType.FINANCING_ANNOUNCEMENT,
+                # 34. 特别表决权
+                "特别表决权": EventType.MAJOR_EVENT,
+                # 35. 超额配售选择权
+                "超额配售选择权": EventType.FINANCING_ANNOUNCEMENT,
+                # 36. 存托凭证相关公告
+                "存托凭证相关公告": EventType.FINANCING_ANNOUNCEMENT,
+                # 37. 询价转让及配售
+                "询价转让及配售": EventType.FINANCING_ANNOUNCEMENT,
+                # 38. 境内外同步披露
+                "境内外同步披露": EventType.OTHER,
+                # 39. 其他
+                "其他": EventType.OTHER
             }
 
-        # 尝试精确匹配
-        if bulletin_type in type_mapping:
-            return type_mapping[bulletin_type]
+            return sse_mapping.get(bulletin_type, EventType.OTHER)
 
-        # 尝试模糊匹配
-        for key, value in type_mapping.items():
-            if key in bulletin_type:
-                return value
 
-        return EventType.OTHER
 
     async def check_event_exists(self, title: str, announcement_date: datetime, stock_code: str = None) -> bool:
         """检查事件是否已存在"""
