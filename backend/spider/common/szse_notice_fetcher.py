@@ -164,7 +164,7 @@ class SZSENoticeFetcher:
                     # 获取相对路径并拼接完整 URL
                     attach_path = record.get("attachPath", "")
                     if attach_path.startswith("/"):
-                        full_url = "https://www.szse.cn" + attach_path
+                        full_url = "https://disc.static.szse.cn/download" + attach_path
                     else:
                         full_url = attach_path
 

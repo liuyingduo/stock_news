@@ -76,20 +76,15 @@ API 文档：`http://localhost:8000/docs`
 系统会自动：
 - 下载交易所公告PDF文件
 - 解析PDF内容为文本
-- 存储到 `static/pdfs/` 目录
-- 前端点击公告时查看本地PDF
+- **自动清理本地文件**（仅保留文本和远程链接）
 
 ### 数据采集
 
+启动全自动监控服务：
+
 ```bash
-# 获取最近1天的公告和电报（默认）
+# 包含：三大交易所公告（30分钟/次）+ 财联社电报（10秒/次）
 uv run python spider/update/update_events.py
-
-# 获取最近7天的公告
-uv run python spider/update/update_events.py --days 7
-
-# 快速模式（不下载PDF）
-uv run python spider/update/update_events.py --days 7 --no-pdf
 ```
 
 ### AI 分析
@@ -120,13 +115,11 @@ uv run python spider/analyze/analyze_events.py --category company_updates
 ### 典型工作流程
 
 ```bash
-# 第一次使用
-uv run python spider/update/update_events.py --days 30        # 采集数据
-uv run python spider/analyze/analyze_events.py              # AI分析
+# 启动监控服务（后台运行）
+uv run python spider/update/update_events.py
 
-# 日常更新
-uv run python spider/update/update_events.py                # 采集最新数据
-uv run python spider/analyze/analyze_events.py --days 1     # 分析新数据
+# 定期运行分析
+uv run python spider/analyze/analyze_events.py --days 1
 ```
 
 ## 项目结构
@@ -157,12 +150,11 @@ backend/
 │   │   ├── szse_notice_fetcher.py  # 深交所爬虫
 │   │   └── bse_notice_fetcher.py   # 北交所爬虫
 │   ├── update/              # 更新爬虫
-│   │   ├── update_events.py        # 整合更新脚本
-│   │   └── README.md               # 详细使用文档
+│   │   └── update_events.py        # 监控主程序
 │   ├── analyze/             # AI 分析脚本
 │   │   └── analyze_events.py       # 批量AI分析（含分类）
 │   └── README.md            # 爬虫使用文档
-├── static/pdfs/             # PDF文件存储目录
+├── static/pdfs/             # (已弃用) PDF临时存储
 ├── pyproject.toml           # 项目依赖
 └── .env                     # 环境变量
 ```

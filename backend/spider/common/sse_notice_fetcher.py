@@ -182,7 +182,7 @@ class SSENoticeFetcher:
                     relative_url = record.get("URL", "")
                     # 拼接完整 URL
                     if relative_url.startswith("/"):
-                        full_url = "https://www.sse.com.cn" + relative_url
+                        full_url = "https://static.sse.com.cn" + relative_url
                     else:
                         full_url = relative_url
 

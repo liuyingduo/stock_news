@@ -54,3 +54,4 @@ uv.lock
 
 # Node
 node_modules/
+*.pdf

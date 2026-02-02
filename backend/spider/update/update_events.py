@@ -92,13 +92,14 @@ class EventUpdater:
 
         return results
 
-    async def process_pdfs_for_notices(self, notices: List[dict], max_concurrent: int = 10) -> List[dict]:
+    async def process_pdfs_for_notices(self, notices: List[dict], max_concurrent: int = 10, headers: Dict[str, str] = None) -> List[dict]:
         """
         批量下载并解析PDF
 
         Args:
             notices: 公告列表
             max_concurrent: 最大并发下载数
+            headers: 自定义HTTP头
 
         Returns:
             处理后的公告列表（包含本地PDF路径和解析内容）
@@ -109,7 +110,8 @@ class EventUpdater:
 
         for notice in notices:
             url = notice.get("url", "")
-            if url and url.endswith(".pdf"):
+            # Check if URL path ends with .pdf (case insensitive, ignoring query params)
+            if url and url.lower().split('?')[0].endswith(".pdf"):
                 pdf_urls.append(url)
                 url_to_notice[url] = notice
 
@@ -120,7 +122,7 @@ class EventUpdater:
         print(f"  开始下载并解析 {len(pdf_urls)} 个PDF文件（并发数: {max_concurrent}）...")
 
         # 批量下载并解析PDF
-        pdf_results = await pdf_service.process_pdf_batch(pdf_urls, max_concurrent=max_concurrent)
+        pdf_results = await pdf_service.process_pdf_batch(pdf_urls, max_concurrent=max_concurrent, headers=headers, cleanup=True)
 
         print(f"  PDF处理完成: 成功 {len(pdf_results)}/{len(pdf_urls)}")
 
@@ -130,7 +132,8 @@ class EventUpdater:
             url = notice.get("url", "")
             if url in pdf_results:
                 local_url, text_content = pdf_results[url]
-                notice["local_pdf_url"] = local_url
+                # cleanup=True时，local_url 为 None，但这符合用户要求（不存本地）
+                notice["local_pdf_url"] = local_url 
                 notice["content"] = text_content if text_content else notice.get("title", "")
             else:
                 notice["content"] = notice.get("title", "")
@@ -356,103 +359,152 @@ class EventUpdater:
         print(f"\n统计: 新增 {saved_count} 条, 跳过 {skipped_count} 条")
         return saved_count
 
-    async def update(self, days: int = 1, process_pdf: bool = True):
+    async def monitor_exchanges(self):
         """
-        更新事件数据
-
-        Args:
-            days: 获取最近N天的公告数据
-            process_pdf: 是否处理PDF文件
+        持续监控证券交易所公告 (30分钟一次)
         """
-        print(f"{'='*60}")
-        print(f"开始更新事件数据 (最近{days}天)")
-        print(f"{'='*60}")
+        print(f"启动证券交易所监控 (间隔: 30分钟)")
+        
+        # 交易所配置
+        exchange_config = {
+            "深圳证券交易所": {
+                "concurrent": 3,
+                "headers": {
+                    "Referer": "https://www.szse.cn/disclosure/listed/notice/index.html",
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36"
+                }
+            },
+            "上海证券交易所": {
+                "concurrent": 3,
+                "headers": {
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                    "Accept": "application/pdf,application/json,text/plain,*/*"
+                }
+            },
+            "北京证券交易所": {
+                "concurrent": 5,
+                "headers": {
+                    "Referer": "https://www.bse.cn/disclosure/announcement.html"
+                }
+            }
+        }
 
-        await connect_to_mongo()
+        while True:
+            try:
+                date = datetime.now()
+                print(f"\n[{date.strftime('%H:%M:%S')}] 开始检查交易所公告...")
 
-        try:
-            all_events = []
-
-            # 遍历日期
-            for i in range(days):
-                date = datetime.now() - timedelta(days=i)
-                date_str = date.strftime("%Y-%m-%d")
-
-                print(f"\n{'#'*60}")
-                print(f"# 日期: {date_str}")
-                print(f"{'#'*60}")
-
-                # 1. 获取三大交易所公告
+                # 1. 获取公告
                 exchange_notices = await self.fetch_exchange_notices(date)
 
-                # 2. 处理PDF（如果启用）
-                if process_pdf:
-                    print(f"\n{'='*60}")
-                    print("批量处理PDF文件")
-                    print(f"{'='*60}")
+                # 2. 处理PDF
+                print(f"[{date.strftime('%H:%M:%S')}] 批量处理PDF文件...")
+                for exchange_name, notices in exchange_notices.items():
+                    if not notices:
+                        continue
+                    
+                    config = exchange_config.get(exchange_name, {"concurrent": 10, "headers": None})
+                    processed_notices = await self.process_pdfs_for_notices(
+                        notices, 
+                        max_concurrent=config["concurrent"], 
+                        headers=config["headers"]
+                    )
+                    exchange_notices[exchange_name] = processed_notices
 
-                    for exchange_name, notices in exchange_notices.items():
-                        if not notices:
-                            continue
-
-                        print(f"\n{exchange_name}:")
-                        processed_notices = await self.process_pdfs_for_notices(notices, max_concurrent=10)
-                        exchange_notices[exchange_name] = processed_notices
-
-                # 3. 转换为统一格式
+                # 3. 转换并保存
+                all_events = []
                 for exchange_name, notices in exchange_notices.items():
                     for notice in notices:
-                        bulletin_type = notice.get("bulletin_type", "其他")
-                        event_type = self._map_bulletin_type_to_event_type(exchange_name, bulletin_type)
+                        try:
+                            bulletin_type = notice.get("bulletin_type", "其他")
+                            event_type = self._map_bulletin_type_to_event_type(exchange_name, bulletin_type)
 
-                        event_data = {
-                            "title": notice.get("title", ""),
-                            "content": notice.get("content", notice.get("title", "")),
-                            "announcement_date": notice.get("announcement_date", date),
-                            "source": exchange_name,
-                            "original_url": notice.get("url", ""),
-                            "local_pdf_url": notice.get("local_pdf_url", ""),
-                            "event_type": event_type,
-                            "event_category": EventCategory.COMPANY_UPDATES,
-                            "stock_code": notice.get("stock_code", ""),
-                            "stock_name": notice.get("stock_name", ""),
-                        }
-                        all_events.append(event_data)
+                            event_data = {
+                                "title": notice.get("title", ""),
+                                "content": notice.get("content", notice.get("title", "")),
+                                "announcement_date": notice.get("announcement_date", date),
+                                "source": exchange_name,
+                                "original_url": notice.get("url", ""),
+                                "local_pdf_url": notice.get("local_pdf_url", ""),
+                                "event_type": event_type,
+                                "event_category": EventCategory.COMPANY_UPDATES,
+                                "stock_code": notice.get("stock_code", ""),
+                                "stock_name": notice.get("stock_name", ""),
+                            }
+                            all_events.append(event_data)
+                        except Exception as e:
+                            print(f"转换事件失败: {e}")
 
-            # 4. 获取财联社电报（只获取最新的一天）
-            if days >= 1:
+                if all_events:
+                    print(f"[{date.strftime('%H:%M:%S')}] 保存 {len(all_events)} 条公告到数据库...")
+                    saved_count = await self.process_and_save_events(all_events)
+                    print(f"[{date.strftime('%H:%M:%S')}] 交易所更新完成: 新增 {saved_count} 条")
+                else:
+                    print(f"[{date.strftime('%H:%M:%S')}] 没有新公告")
+
+            except Exception as e:
+                print(f"交易所监控发生错误: {e}")
+                import traceback
+                traceback.print_exc()
+
+            # 等待 30 分钟
+            await asyncio.sleep(1800)
+
+    async def monitor_telegraph(self):
+        """
+        持续监控财联社电报 (10秒一次)
+        """
+        print(f"启动财联社电报监控 (间隔: 10秒)")
+        while True:
+            try:
+                # 获取电报
                 telegraphs = await self.fetch_cls_telegraph()
-                all_events.extend(telegraphs)
-
-            # 5. 保存到数据库
-            if all_events:
-                print(f"\n{'='*60}")
-                print(f"保存到数据库 (共 {len(all_events)} 条)")
-                print(f"{'='*60}")
-                await self.process_and_save_events(all_events)
-            else:
-                print("\n没有获取到任何事件数据")
-
-            print(f"\n{'='*60}")
-            print(f"事件更新完成!")
-            print(f"{'='*60}")
-
-        finally:
-            await close_mongo_connection()
+                
+                if telegraphs:
+                    # 直接保存（fetch_cls_telegraph已经返回了正确的格式吗？
+                    # 查看 fetch_cls_telegraph 实现: Returns list[dict]
+                    # process_and_save_events 需要 list[dict] 且包含 event_category 等字段
+                    # fetch_cls_telegraph 应该已经处理好了格式? 
+                    # 之前的代码直接调用 self.process_and_save_events(all_events) 其中all_events包含telegraphs
+                    # 所以格式应该是兼容的。
+                    
+                    # 为了不刷屏，只在有数据时打印？或者定期打印心跳?
+                    # 只保存新增的
+                    saved_count = await self.process_and_save_events(telegraphs)
+                    if saved_count > 0:
+                         print(f"[{datetime.now().strftime('%H:%M:%S')}] 财联社更新: 新增 {saved_count} 条")
+                
+            except Exception as e:
+                print(f"财联社监控发生错误: {e}")
+            
+            # 等待 10 秒
+            await asyncio.sleep(10)
 
 
 async def main():
-    """主函数"""
-    import argparse
-
-    parser = argparse.ArgumentParser(description="增量更新金融事件数据")
-    parser.add_argument("--days", type=int, default=1, help="获取最近N天的公告数据（默认：1）")
-    parser.add_argument("--no-pdf", action="store_true", help="不下载和处理PDF文件")
-
-    args = parser.parse_args()
+    """主程序：启动监控"""
+    print(f"{'='*60}")
+    print("Stock News Monitor Service Started")
+    print(f"{'='*60}")
 
     updater = EventUpdater()
-    await updater.update(days=args.days, process_pdf=not args.no_pdf)
+    
+    # 连接数据库 (全局只需一次)
+    await connect_to_mongo()
+    
+    try:
+        # 并发运行两个监控任务
+        await asyncio.gather(
+            updater.monitor_exchanges(),
+            updater.monitor_telegraph()
+        )
+    except asyncio.CancelledError:
+        print("监控服务已停止")
+    except KeyboardInterrupt:
+        print("用户中断")
+    finally:
+        await close_mongo_connection()
+        print("数据库连接已关闭")
 
 
 if __name__ == "__main__":
@@ -460,4 +512,7 @@ if __name__ == "__main__":
     if sys.platform == 'win32':
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        pass

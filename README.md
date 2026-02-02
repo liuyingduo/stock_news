@@ -98,16 +98,14 @@ uv run python -m app.main
 API: http://localhost:8000
 文档: http://localhost:8000/docs
 
-### 4. 数据采集
+### 4. 启动数据监控
 
 ```bash
 cd backend
 
-# 初始化数据（获取最近7天的公告）
-uv run python spider/update/update_events.py --days 7
-
-# 快速模式（不下载PDF）
-uv run python spider/update/update_events.py --days 7 --no-pdf
+# 启动全自动监控服务（7x24小时运行）
+#包含：三大交易所公告（30分钟/次）+ 财联社电报（10秒/次）
+uv run python spider/update/update_events.py
 ```
 
 ### 5. AI 分析
@@ -115,7 +113,7 @@ uv run python spider/update/update_events.py --days 7 --no-pdf
 ```bash
 cd backend
 
-# 分析所有待分析的事件（自动包含分类）
+# 分析所有待分析的事件
 uv run python spider/analyze/analyze_events.py
 
 # 分析最近7天的事件
@@ -137,26 +135,19 @@ npm run dev
 
 ## 日常使用
 
-### 更新最新数据
+本系统设计为**长期后台运行**。
 
-```bash
-cd backend
-
-# 1. 增量更新数据（包含三大交易所公告和财联社电报）
-uv run python spider/update/update_events.py
-
-# 2. 分析新数据
-uv run python spider/analyze/analyze_events.py --days 1
-```
+1.  **数据采集**：保持 `update_events.py` 在后台运行，它会自动采集并入库最新数据。
+2.  **AI 分析**：定时或按需运行 `analyze_events.py` 对新数据进行深度分析。
+3.  **前端查看**：通过浏览器访问前端界面查看监控结果。
 
 ### 数据说明
 
 系统会自动：
-- 获取三大交易所的公告列表
-- 下载PDF文件到 `backend/static/pdfs/` 目录
-- 解析PDF内容为文本
-- 存储到数据库
-- 前端点击公告时跳转到本地PDF
+- 轮询三大交易所和财联社
+- 自动绕过反爬（WAF）下载公告 PDF
+- 解析 PDF 文本后**自动清理本地文件**（不占用磁盘）
+- 存储元数据到数据库
 
 ## API 端点
 

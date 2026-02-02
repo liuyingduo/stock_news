@@ -1,1 +1,0 @@
-# Init spider module
