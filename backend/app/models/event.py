@@ -75,6 +75,8 @@ class Event(BaseModel):
     expected_date: Optional[datetime] = Field(None, description="预期发生日期")
     source: Optional[str] = Field(None, description="数据来源")
     original_url: Optional[str] = Field(None, description="原始链接")
+    stock_code: Optional[str] = Field(None, description="股票代码")
+    stock_name: Optional[str] = Field(None, description="股票名称")
 
     # AI 分析数据
     ai_analysis: Optional[AIAnalysis] = Field(None, description="AI 分析结果")
@@ -99,6 +101,8 @@ class EventCreate(BaseModel):
     expected_date: Optional[datetime] = None
     source: Optional[str] = None
     original_url: Optional[str] = None
+    stock_code: Optional[str] = None
+    stock_name: Optional[str] = None
 
 
 class EventUpdate(BaseModel):
@@ -111,6 +115,8 @@ class EventUpdate(BaseModel):
     expected_date: Optional[datetime] = None
     source: Optional[str] = None
     original_url: Optional[str] = None
+    stock_code: Optional[str] = None
+    stock_name: Optional[str] = None
     ai_analysis: Optional[AIAnalysis] = None
 
 
@@ -125,6 +131,8 @@ class EventResponse(BaseModel):
     expected_date: Optional[datetime] = None
     source: Optional[str] = None
     original_url: Optional[str] = None
+    stock_code: Optional[str] = None
+    stock_name: Optional[str] = None
     ai_analysis: Optional[AIAnalysis] = None
     created_at: datetime
     updated_at: datetime

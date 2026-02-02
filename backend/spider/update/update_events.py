@@ -292,10 +292,10 @@ class EventUpdater:
 
         return EventType.OTHER
 
-    async def check_event_exists(self, title: str, announcement_date: datetime) -> bool:
+    async def check_event_exists(self, title: str, announcement_date: datetime, stock_code: str = None) -> bool:
         """检查事件是否已存在"""
         try:
-            existing = await db_service.get_event_by_title_date(title, announcement_date)
+            existing = await db_service.get_event_by_title_date(title, announcement_date, stock_code)
             return existing is not None
         except:
             return False
@@ -321,7 +321,7 @@ class EventUpdater:
                 announcement_date = event_data.get("announcement_date", datetime.now())
 
                 # 检查是否已存在
-                if await self.check_event_exists(title, announcement_date):
+                if await self.check_event_exists(title, announcement_date, stock_code=event_data.get("stock_code")):
                     skipped_count += 1
                     continue
 
@@ -397,23 +397,58 @@ class EventUpdater:
                 # 1. 获取公告
                 exchange_notices = await self.fetch_exchange_notices(date)
 
-                # 2. 处理PDF
-                print(f"[{date.strftime('%H:%M:%S')}] 批量处理PDF文件...")
+                # 2. 预处理：过滤已存在的公告，避免重复下载PDF
+                new_exchange_notices = {}
+                skipped_total = 0
+                
+                print(f"[{date.strftime('%H:%M:%S')}] 检查数据库重复项...")
+                
                 for exchange_name, notices in exchange_notices.items():
                     if not notices:
                         continue
+                        
+                    new_notices = []
+                    for notice in notices:
+                        title = notice.get("title", "")
+                        notice_date = notice.get("announcement_date", date)
+                        stock_code = notice.get("stock_code")
+                        
+                        # 检查数据库
+                        if await self.check_event_exists(title, notice_date, stock_code):
+                            skipped_total += 1
+                            continue
+                            
+                        new_notices.append(notice)
                     
-                    config = exchange_config.get(exchange_name, {"concurrent": 10, "headers": None})
-                    processed_notices = await self.process_pdfs_for_notices(
-                        notices, 
-                        max_concurrent=config["concurrent"], 
-                        headers=config["headers"]
-                    )
-                    exchange_notices[exchange_name] = processed_notices
+                    if new_notices:
+                        new_exchange_notices[exchange_name] = new_notices
+                        print(f"  {exchange_name}: 发现 {len(new_notices)} 条新公告 (跳过 {len(notices) - len(new_notices)} 条重复)")
+                    elif len(notices) > 0:
+                        print(f"  {exchange_name}: 所有 {len(notices)} 条公告均已存在，全部跳过")
 
-                # 3. 转换并保存
+                if skipped_total > 0:
+                     print(f"[{date.strftime('%H:%M:%S')}] 总计跳过 {skipped_total} 条重复公告，无需下载PDF")
+
+                # 3. 处理PDF (只处理新公告)
+                if new_exchange_notices:
+                    print(f"[{date.strftime('%H:%M:%S')}] 批量处理新公告的PDF文件...")
+                    for exchange_name, notices in new_exchange_notices.items():
+                        config = exchange_config.get(exchange_name, {"concurrent": 10, "headers": None})
+                        processed_notices = await self.process_pdfs_for_notices(
+                            notices, 
+                            max_concurrent=config["concurrent"], 
+                            headers=config["headers"]
+                        )
+                        new_exchange_notices[exchange_name] = processed_notices
+                else:
+                    print(f"[{date.strftime('%H:%M:%S')}] 没有需要处理的新公告")
+
+                # 4. 转换并保存
                 all_events = []
-                for exchange_name, notices in exchange_notices.items():
+                # 注意：这里我们只保存 new_exchange_notices 中的数据
+                # 之前的逻辑是遍历所有的 exchange_notices，但这会导致重复尝试保存（虽然保存层也有去重）
+                # 既然我们在前面已经过滤了，这里只处理 new_exchange_notices 即可高效入库
+                for exchange_name, notices in new_exchange_notices.items():
                     for notice in notices:
                         try:
                             bulletin_type = notice.get("bulletin_type", "其他")

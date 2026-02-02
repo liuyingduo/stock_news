@@ -96,12 +96,24 @@ class DatabaseService:
         except Exception:
             return None
 
-    async def get_event_by_title_date(self, title: str, date: datetime) -> Optional[Dict[str, Any]]:
-        """根据标题和日期获取事件（用于去重）"""
-        event = await self._get_db().events.find_one({
+    async def get_event_by_title_date(self, title: str, date: datetime, stock_code: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        """
+        根据标题和日期获取事件（用于去重）
+        支持忽略具体时间（按天查询）和股票代码匹配
+        """
+        start_of_day = date.replace(hour=0, minute=0, second=0, microsecond=0)
+        end_of_day = date.replace(hour=23, minute=59, second=59, microsecond=999999)
+        
+        query = {
             "title": title,
-            "announcement_date": date
-        })
+            "announcement_date": {"$gte": start_of_day, "$lte": end_of_day}
+        }
+        
+        if stock_code:
+            query["stock_code"] = stock_code
+            
+        event = await self._get_db().events.find_one(query)
+        
         if event:
             return self._convert_objectid_to_str(event)
         return None
