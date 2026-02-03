@@ -29,11 +29,13 @@ export enum EventType {
 export interface AffectedStock {
   name: string
   code: string
+  reason?: string  // 新增：影响理由
 }
 
 export interface AffectedSector {
   name: string
   code: string
+  reason?: string  // 新增：影响理由
 }
 
 export interface AffectedMaterial {
@@ -42,6 +44,9 @@ export interface AffectedMaterial {
 
 export interface AIAnalysis {
   impact_score: number | null
+  sentiment_score?: number       // 新增：-1 to 1
+  confidence_score?: number      // 新增：0-1
+  is_hype?: boolean              // 新增：是否炒作
   impact_reason: string | null
   affected_sectors: AffectedSector[]
   affected_stocks: AffectedStock[]
@@ -54,7 +59,7 @@ export interface Event {
   title: string
   content: string
   event_category: EventCategory
-  event_type: EventType
+  event_type: EventType | EventType[]  // 支持两种格式：单个字符串或数组
   announcement_date: string
   expected_date: string | null
   source: string | null

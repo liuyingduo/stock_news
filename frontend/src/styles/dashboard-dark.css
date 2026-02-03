@@ -40,6 +40,22 @@
   --transition-fast: 0.15s ease;
   --transition-base: 0.2s ease;
   --transition-slow: 0.3s ease;
+
+  /* ===== EcoSignal 专用变量 ===== */
+  /* 分值颜色 */
+  --score-bullish: #ef4444;      /* 极度利好 >0.7 */
+  --score-bullish-mid: #f97316;  /* 利好 0.3~0.7 */
+  --score-neutral: #94a3b8;      /* 中性 ±0.1 */
+  --score-bearish-mid: #64748b;  /* 利空 -0.3~-0.7 */
+  --score-bearish: #22c55e;      /* 极度利空 <-0.7 */
+
+  /* 信号卡片 */
+  --signal-card-bg: rgba(30, 41, 59, 0.8);
+  --signal-card-border: rgba(148, 163, 184, 0.1);
+  --signal-card-hover: rgba(51, 65, 85, 0.9);
+
+  /* 仪表盘 */
+  --gauge-bg: rgba(15, 23, 42, 0.5);
 }
 
 /* 全局样式 */

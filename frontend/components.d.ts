@@ -7,6 +7,7 @@ export {}
 
 declare module 'vue' {
   export interface GlobalComponents {
+    CircularProgress: typeof import('./src/components/ecoSignal/CircularProgress.vue')['default']
     ElButton: typeof import('element-plus/es')['ElButton']
     ElDatePicker: typeof import('element-plus/es')['ElDatePicker']
     ElDialog: typeof import('element-plus/es')['ElDialog']
@@ -22,8 +23,11 @@ declare module 'vue' {
     ElTag: typeof import('element-plus/es')['ElTag']
     ElTooltip: typeof import('element-plus/es')['ElTooltip']
     EventCard: typeof import('./src/components/EventCard.vue')['default']
+    InfiniteScroll: typeof import('./src/components/common/InfiniteScroll.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    SentimentGauge: typeof import('./src/components/ecoSignal/SentimentGauge.vue')['default']
+    SignalCard: typeof import('./src/components/ecoSignal/SignalCard.vue')['default']
   }
   export interface ComponentCustomProperties {
     vLoading: typeof import('element-plus/es')['ElLoadingDirective']

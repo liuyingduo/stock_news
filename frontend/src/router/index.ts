@@ -12,6 +12,12 @@ const routes: RouteRecordRaw[] = [
     name: 'Sectors',
     component: () => import('../views/Sectors.vue'),
   },
+  {
+    path: '/ecosignal',
+    name: 'EcoSignal',
+    component: () => import('../views/EcoSignal.vue'),
+    meta: { title: '智金通 EcoSignal' },
+  },
 ]
 
 const router = createRouter({

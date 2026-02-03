@@ -36,6 +36,9 @@
         <button class="nav-button nav-button-secondary" @click="navigateToDashboard">
           Dashboard
         </button>
+        <button class="nav-button nav-button-secondary" @click="navigateToEcoSignal">
+          智金通
+        </button>
         <button class="nav-button nav-button-primary" @click="navigateToSectors">
           Sectors View
         </button>
@@ -55,6 +58,10 @@
             <el-menu-item index="/">
               <el-icon><DataBoard /></el-icon>
               <span>仪表板</span>
+            </el-menu-item>
+            <el-menu-item index="/ecosignal">
+              <el-icon><TrendCharts /></el-icon>
+              <span>智金通</span>
             </el-menu-item>
             <el-menu-item index="/sectors">
               <el-icon><PieChart /></el-icon>
@@ -136,6 +143,10 @@ const activeMenu = computed(() => route.path)
 
 const navigateToDashboard = () => {
   router.push('/')
+}
+
+const navigateToEcoSignal = () => {
+  router.push('/ecosignal')
 }
 
 const navigateToSectors = () => {
