@@ -1,4 +1,4 @@
-from zhipuai import ZhipuAI
+from zai import ZhipuAiClient
 from app.config import settings
 from app.models import AIAnalysis, AffectedStock, AffectedSector, AffectedMaterial
 from typing import List
@@ -14,7 +14,7 @@ class AIService:
         """初始化 AI 服务"""
         if not settings.zhipu_api_key or settings.zhipu_api_key == "your-api-key-here":
             raise ValueError("ZHIPU_API_KEY is not configured")
-        self.client = ZhipuAI(api_key=settings.zhipu_api_key)
+        self.client = ZhipuAiClient(api_key=settings.zhipu_api_key)
 
 
 

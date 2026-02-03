@@ -8,6 +8,12 @@ const routes: RouteRecordRaw[] = [
     component: () => import('../views/Dashboard.vue'),
   },
   {
+    path: '/events/:id',
+    name: 'EventDetail',
+    component: () => import('../views/EventDetail.vue'),
+    meta: { title: '事件详情' },
+  },
+  {
     path: '/sectors',
     name: 'Sectors',
     component: () => import('../views/Sectors.vue'),

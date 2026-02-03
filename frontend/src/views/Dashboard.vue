@@ -69,6 +69,7 @@
           v-for="event in events"
           :key="event.id"
           :event="event"
+          @click="handleEventClick"
           @analyze="handleAnalyze"
         />
       </div>
@@ -91,11 +92,14 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Search, Refresh } from '@element-plus/icons-vue'
 import { getEvents, analyzeEvent } from '../api/events'
 import type { Event } from '../api/types'
 import EventCard from '../components/EventCard.vue'
+
+const router = useRouter()
 
 const loading = ref(false)
 const events = ref<Event[]>([])
@@ -166,6 +170,10 @@ const handleAnalyze = async (eventId: string) => {
   } catch (error: any) {
     ElMessage.error(error.message || 'AI 分析失败')
   }
+}
+
+const handleEventClick = (event: Event) => {
+  router.push({ name: 'EventDetail', params: { id: event.id } })
 }
 
 onMounted(() => {

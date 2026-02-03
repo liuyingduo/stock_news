@@ -54,11 +54,25 @@
 
     <!-- Card Footer -->
     <div class="card-footer">
-      <div v-if="event.ai_analysis?.impact_score !== null && event.ai_analysis?.impact_score !== undefined" class="impact-score">
-        <span>影响评分:</span>
-        <span :class="getImpactClass(event.ai_analysis?.impact_score ?? null)">
-          {{ event.ai_analysis?.impact_score?.toFixed(1) ?? 'N/A' }}/10
-        </span>
+      <div class="scores-container">
+        <div v-if="event.ai_analysis?.impact_score != null" class="score-item">
+          <span class="score-label">影响:</span>
+          <span :class="['score-value', getImpactClass(event.ai_analysis.impact_score)]">
+            {{ event.ai_analysis.impact_score.toFixed(1) }}
+          </span>
+        </div>
+        <div v-if="event.ai_analysis?.sentiment_score != null" class="score-item">
+          <span class="score-label">情绪:</span>
+          <span :class="['score-value', getSentimentClass(event.ai_analysis.sentiment_score)]">
+            {{ event.ai_analysis.sentiment_score.toFixed(1) }}
+          </span>
+        </div>
+        <div v-if="event.ai_analysis?.confidence_score != null" class="score-item">
+          <span class="score-label">置信:</span>
+          <span :class="['score-value', getConfidenceClass(event.ai_analysis.confidence_score)]">
+            {{ (event.ai_analysis.confidence_score * 100).toFixed(0) }}%
+          </span>
+        </div>
       </div>
       <el-button
         v-if="event.original_url"
@@ -86,6 +100,17 @@
 import { computed } from 'vue'
 import { formatDate } from '../utils/date'
 import type { Event, EventType } from '../api/types'
+import { 
+  getCategoryLabel, 
+  getCategoryClass, 
+  getTypeTagType, 
+  getTypeLabel 
+} from '../utils/format'
+import { 
+  getImpactClass, 
+  getSentimentClass, 
+  getConfidenceClass 
+} from '../utils/score'
 
 interface Props {
   event: Event
@@ -108,68 +133,7 @@ const normalizedTypes = computed(() => {
   return []
 })
 
-const getCategoryLabel = (category: string) => {
-  const labels: Record<string, string> = {
-    global_macro: '全球大事',
-    policy: '政策风向',
-    industry: '行业动向',
-    company: '公司动态',
-  }
-  return labels[category] || category.toUpperCase()
-}
-
-const getCategoryClass = (category: string) => {
-  const classes: Record<string, string> = {
-    global_macro: 'category-geopolitics',
-    policy: 'category-policy',
-    industry: 'category-economy',
-    company: 'category-company',
-  }
-  return classes[category] || 'category-others'
-}
-
-// 获取类型标签颜色
-const getTypeTagType = (type: EventType) => {
-  const typeMap: Record<string, any> = {
-    risk_crisis: 'danger',
-    regulatory: 'danger',
-    sentiment: 'warning',
-    price_vol: 'warning',
-    tech_innov: 'info',
-    capital_action: 'success',
-    info_change: '',
-    ops_info: '',
-    order_contract: 'info',
-    supply_chain: 'info',
-    geopolitics: 'danger',
-  }
-  return typeMap[type] || ''
-}
-
-// 获取类型标签文本
-const getTypeLabel = (type: EventType) => {
-  const labels: Record<string, string> = {
-    geopolitics: '地缘政治',
-    regulatory: '监管政策',
-    sentiment: '市场情绪',
-    tech_innov: '科技创新',
-    supply_chain: '供应链',
-    capital_action: '资本运作',
-    info_change: '信息变更',
-    ops_info: '运营信息',
-    order_contract: '订单合同',
-    price_vol: '价格波动',
-    risk_crisis: '风险危机',
-  }
-  return labels[type] || type
-}
-
-const getImpactClass = (score: number | null) => {
-  if (score === null) return ''
-  if (score >= 8) return 'impact-high'
-  if (score >= 6) return 'impact-medium'
-  return 'impact-low'
-}
+// Local functions removed. Using imported utils.
 
 const formatRelativeDate = (dateStr: string) => {
   const date = new Date(dateStr)
@@ -269,29 +233,27 @@ const openOriginalLink = () => {
   border-top: 1px solid var(--border-primary);
 }
 
-.impact-score {
+.scores-container {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.score-item {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   font-size: 13px;
-  font-weight: 500;
   color: var(--text-secondary);
 }
 
-.impact-score span:last-child {
+.score-label {
+  font-weight: 500;
+}
+
+.score-value {
   font-weight: 600;
-}
-
-.impact-high {
-  color: var(--accent-primary);
-}
-
-.impact-medium {
-  color: var(--accent-secondary);
-}
-
-.impact-low {
-  color: var(--accent-success);
+  font-family: var(--font-mono);
 }
 
 .view-button,
@@ -341,5 +303,47 @@ const openOriginalLink = () => {
 .tooltip-text {
   color: rgba(255, 255, 255, 0.85);
   font-weight: 400;
+}
+
+/* ========== Unified Color Scheme ========== */
+
+/* Impact: Magnitude-based (no good/bad implication) */
+.impact-high {
+  color: var(--text-primary) !important;  /* Bright white - prominent */
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+}
+
+.impact-medium {
+  color: var(--accent-info) !important;  /* Blue - emphasis */
+}
+
+.impact-low {
+  color: var(--text-muted) !important;  /* Dim gray */
+}
+
+/* Sentiment: Directional (positive = good, negative = bad) */
+.sentiment-positive {
+  color: var(--accent-success) !important;  /* Green - positive */
+}
+
+.sentiment-negative {
+  color: var(--accent-danger) !important;  /* Red - negative */
+}
+
+.sentiment-neutral {
+  color: var(--text-secondary) !important;  /* Gray - neutral */
+}
+
+/* Confidence: Reliability (high = trustworthy) */
+.confidence-high {
+  color: var(--accent-success) !important;  /* Green - reliable */
+}
+
+.confidence-medium {
+  color: var(--accent-warning) !important;  /* Orange - caution */
+}
+
+.confidence-low {
+  color: var(--text-muted) !important;  /* Gray - unreliable */
 }
 </style>

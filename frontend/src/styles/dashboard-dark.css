@@ -13,6 +13,8 @@
   --accent-primary: #ff4d4d;
   --accent-secondary: #f59e0b;
   --accent-success: #4ade80;
+  --accent-warning: #F59E0B;  /* 警告橙 - 与 secondary 相同 */
+  --accent-danger: #EF4444;   /* 危险红 - 用于负面信息 */
   --accent-info: #3b82f6;
   --accent-cyan: #06b6d4;
 
