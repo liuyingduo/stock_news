@@ -37,7 +37,7 @@
         :min="-1"
         :max="1"
         :size="compact ? 60 : 80"
-        label="情绪"
+        label="多空"
       />
       <CircularProgress
         v-if="event.ai_analysis.impact_score !== null"

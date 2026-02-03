@@ -48,7 +48,7 @@
             </div>
           </div>
           <div class="score-card">
-            <div class="score-label">市场情绪</div>
+            <div class="score-label">多空信号</div>
             <div :class="['score-value', getSentimentClass(event.ai_analysis.sentiment_score)]">
               {{ event.ai_analysis.sentiment_score?.toFixed(2) || 'N/A' }}
             </div>

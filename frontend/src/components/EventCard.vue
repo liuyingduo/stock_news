@@ -62,7 +62,7 @@
           </span>
         </div>
         <div v-if="event.ai_analysis?.sentiment_score != null" class="score-item">
-          <span class="score-label">情绪:</span>
+          <span class="score-label">多空:</span>
           <span :class="['score-value', getSentimentClass(event.ai_analysis.sentiment_score)]">
             {{ event.ai_analysis.sentiment_score.toFixed(1) }}
           </span>

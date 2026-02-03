@@ -113,7 +113,7 @@ const chartOption = computed<EChartsOption>(() => ({
       data: [
         {
           value: props.averageSentiment,
-          name: '市场情绪',
+          name: '多空信号',
         },
       ],
     },
