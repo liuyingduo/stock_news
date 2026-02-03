@@ -51,10 +51,10 @@
             class="filter-select"
             @change="handleFilterChange"
           >
-            <el-option label="全球大事" value="global_events" />
-            <el-option label="政策风向" value="policy_trends" />
-            <el-option label="行业动向" value="industry_trends" />
-            <el-option label="公司动态" value="company_updates" />
+            <el-option label="全球大事" value="global_macro" />
+            <el-option label="政策风向" value="policy" />
+            <el-option label="行业动向" value="industry" />
+            <el-option label="公司动态" value="company" />
           </el-select>
 
           <el-input
@@ -204,7 +204,7 @@ onMounted(() => {
 
 .page-title {
   font-size: 24px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-primary, #f1f5f9);
   margin: 0;
 }
@@ -250,7 +250,7 @@ onMounted(() => {
 
 .stat-value {
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .stat-alert {
@@ -274,7 +274,7 @@ onMounted(() => {
 
 .filter-title {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--text-primary, #f1f5f9);
   margin: 0 0 12px 0;
 }
@@ -315,7 +315,7 @@ onMounted(() => {
 
 .section-title {
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 500;
   margin: 0 0 16px 0;
   display: flex;
   align-items: center;

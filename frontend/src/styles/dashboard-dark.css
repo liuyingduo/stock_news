@@ -66,10 +66,36 @@ body,
   padding: 0;
   width: 100%;
   height: 100%;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  /* 使用更细、更现代的字体 */
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB',
+               'Microsoft YaHei', 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+               'Noto Sans SC', sans-serif;
+  font-weight: 400; /* 使用常规字重，不要加粗 */
+  font-size: 14px; /* 稍微调小字号 */
+  line-height: 1.6;
+  letter-spacing: 0.01em; /* 轻微增加字间距，更优雅 */
   background-color: var(--bg-primary);
   color: var(--text-primary);
   overflow-x: hidden;
+}
+
+/* 全局字体调整 */
+* {
+  font-weight: 400; /* 所有元素默认使用常规字重 */
+}
+
+/* 标题字重 */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 500; /* 标题使用中等字重，不会太粗 */
+  margin: 0;
+}
+
+/* Element Plus 组件字体调整 */
+.el-button,
+.el-input,
+.el-select,
+.el-tag {
+  font-weight: 400 !important;
 }
 
 /* LIVE 指示器 */

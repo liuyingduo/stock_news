@@ -2,9 +2,21 @@
   <div class="article-card" @click="handleClick">
     <!-- Card Header -->
     <div class="card-header">
-      <span :class="['category-tag', getCategoryClass(event.event_category)]">
-        {{ getCategoryLabel(event.event_category) }}
-      </span>
+      <div class="header-left">
+        <span :class="['category-tag', getCategoryClass(event.event_category)]">
+          {{ getCategoryLabel(event.event_category) }}
+        </span>
+        <div v-if="normalizedTypes.length > 0" class="type-tags">
+          <el-tag
+            v-for="type in normalizedTypes"
+            :key="type"
+            size="small"
+            :type="getTypeTagType(type)"
+          >
+            {{ getTypeLabel(type) }}
+          </el-tag>
+        </div>
+      </div>
       <div class="card-meta">
         <span v-if="event.source" class="meta-item">
           📰 {{ event.source }}
@@ -71,8 +83,9 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { formatDate } from '../utils/date'
-import type { Event } from '../api/types'
+import type { Event, EventType } from '../api/types'
 
 interface Props {
   event: Event
@@ -86,24 +99,69 @@ interface Emits {
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
+// 标准化类型为数组
+const normalizedTypes = computed(() => {
+  const types = props.event.event_types
+  if (Array.isArray(types)) {
+    return types
+  }
+  return []
+})
+
 const getCategoryLabel = (category: string) => {
   const labels: Record<string, string> = {
-    global_events: '全球大事',
-    policy_trends: '政策风向',
-    industry_trends: '行业动向',
-    company_updates: '公司动态',
+    global_macro: '全球大事',
+    policy: '政策风向',
+    industry: '行业动向',
+    company: '公司动态',
   }
   return labels[category] || category.toUpperCase()
 }
 
 const getCategoryClass = (category: string) => {
   const classes: Record<string, string> = {
-    global_events: 'category-geopolitics',
-    policy_trends: 'category-policy',
-    industry_trends: 'category-economy',
-    company_updates: 'category-company',
+    global_macro: 'category-geopolitics',
+    policy: 'category-policy',
+    industry: 'category-economy',
+    company: 'category-company',
   }
   return classes[category] || 'category-others'
+}
+
+// 获取类型标签颜色
+const getTypeTagType = (type: EventType) => {
+  const typeMap: Record<string, any> = {
+    risk_crisis: 'danger',
+    regulatory: 'danger',
+    sentiment: 'warning',
+    price_vol: 'warning',
+    tech_innov: 'info',
+    capital_action: 'success',
+    info_change: '',
+    ops_info: '',
+    order_contract: 'info',
+    supply_chain: 'info',
+    geopolitics: 'danger',
+  }
+  return typeMap[type] || ''
+}
+
+// 获取类型标签文本
+const getTypeLabel = (type: EventType) => {
+  const labels: Record<string, string> = {
+    geopolitics: '地缘政治',
+    regulatory: '监管政策',
+    sentiment: '市场情绪',
+    tech_innov: '科技创新',
+    supply_chain: '供应链',
+    capital_action: '资本运作',
+    info_change: '信息变更',
+    ops_info: '运营信息',
+    order_contract: '订单合同',
+    price_vol: '价格波动',
+    risk_crisis: '风险危机',
+  }
+  return labels[type] || type
 }
 
 const getImpactClass = (score: number | null) => {
@@ -173,7 +231,7 @@ const openOriginalLink = () => {
 
 .card-title {
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--text-primary);
   margin: 0 0 8px 0;
   line-height: 1.4;
@@ -216,12 +274,12 @@ const openOriginalLink = () => {
   align-items: center;
   gap: 6px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--text-secondary);
 }
 
 .impact-score span:last-child {
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .impact-high {
@@ -240,7 +298,7 @@ const openOriginalLink = () => {
 .analyze-button {
   font-size: 12px;
   padding: 6px 16px;
-  font-weight: 600;
+  font-weight: 500;
 }
 </style>
 

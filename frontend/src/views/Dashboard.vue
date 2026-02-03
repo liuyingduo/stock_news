@@ -17,10 +17,10 @@
         class="filter-select"
         @change="handleSearch"
       >
-        <el-option label="全球大事" value="global_events" />
-        <el-option label="政策风向" value="policy_trends" />
-        <el-option label="行业动向" value="industry_trends" />
-        <el-option label="公司动态" value="company_updates" />
+        <el-option label="全球大事" value="global_macro" />
+        <el-option label="政策风向" value="policy" />
+        <el-option label="行业动向" value="industry" />
+        <el-option label="公司动态" value="company" />
       </el-select>
       <el-select
         v-model="queryParams.event_type"
@@ -30,27 +30,17 @@
         class="filter-select"
         @change="handleSearch"
       >
-        <el-option-group label="全球大事">
-          <el-option label="宏观地缘" value="macro_geopolitics" />
-        </el-option-group>
-        <el-option-group label="政策风向">
-          <el-option label="监管政策" value="regulatory_policy" />
-          <el-option label="市场情绪" value="market_sentiment" />
-        </el-option-group>
-        <el-option-group label="行业动向">
-          <el-option label="产业链驱动" value="industrial_chain" />
-          <el-option label="核心板块" value="core_sector" />
-        </el-option-group>
-        <el-option-group label="公司动态">
-          <el-option label="重大事项" value="major_event" />
-          <el-option label="财务报告" value="financial_report" />
-          <el-option label="融资公告" value="financing_announcement" />
-          <el-option label="风险提示" value="risk_warning" />
-          <el-option label="资产重组" value="asset_restructuring" />
-          <el-option label="信息变更" value="info_change" />
-          <el-option label="持股变动" value="shareholding_change" />
-          <el-option label="其他" value="other" />
-        </el-option-group>
+        <el-option label="地缘政治" value="geopolitics" />
+        <el-option label="监管政策" value="regulatory" />
+        <el-option label="市场情绪" value="sentiment" />
+        <el-option label="科技创新" value="tech_innov" />
+        <el-option label="供应链" value="supply_chain" />
+        <el-option label="价格波动" value="price_vol" />
+        <el-option label="信息变更" value="info_change" />
+        <el-option label="运营信息" value="ops_info" />
+        <el-option label="订单合同" value="order_contract" />
+        <el-option label="资本运作" value="capital_action" />
+        <el-option label="风险危机" value="risk_crisis" />
       </el-select>
       <el-date-picker
         v-model="dateRange"

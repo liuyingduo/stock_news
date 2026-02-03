@@ -1,29 +1,27 @@
 // 事件类型
 export enum EventCategory {
-  GLOBAL_EVENTS = 'global_events',
-  POLICY_TRENDS = 'policy_trends',
-  INDUSTRY_TRENDS = 'industry_trends',
-  COMPANY_UPDATES = 'company_updates',
+  GLOBAL_MACRO = 'global_macro',
+  POLICY = 'policy',
+  INDUSTRY = 'industry',
+  COMPANY = 'company',
 }
 
 export enum EventType {
   // 全球大事
-  MACRO_GEOPOLITICS = 'macro_geopolitics',
+  GEOPOLITICS = 'geopolitics',
   // 政策风向
-  REGULATORY_POLICY = 'regulatory_policy',
-  MARKET_SENTIMENT = 'market_sentiment',
+  REGULATORY = 'regulatory',
+  MARKET_SENTIMENT = 'sentiment',
   // 行业动向
-  INDUSTRIAL_CHAIN = 'industrial_chain',
-  CORE_SECTOR = 'core_sector',
+  TECH_INNOV = 'tech_innov',
+  SUPPLY_CHAIN = 'supply_chain',
+  PRICE_VOL = 'price_vol',
   // 公司动态
-  MAJOR_EVENT = 'major_event',
-  FINANCIAL_REPORT = 'financial_report',
-  FINANCING_ANNOUNCEMENT = 'financing_announcement',
-  RISK_WARNING = 'risk_warning',
-  ASSET_RESTRUCTURING = 'asset_restructuring',
   INFO_CHANGE = 'info_change',
-  SHAREHOLDING_CHANGE = 'shareholding_change',
-  OTHER = 'other',
+  OPS_INFO = 'ops_info',
+  ORDER_CONTRACT = 'order_contract',
+  CAPITAL_ACTION = 'capital_action',
+  RISK_CRISIS = 'risk_crisis',
 }
 
 export interface AffectedStock {
@@ -58,8 +56,8 @@ export interface Event {
   id: string
   title: string
   content: string
-  event_category: EventCategory
-  event_type: EventType | EventType[]  // 支持两种格式：单个字符串或数组
+  event_category: string  // 使用 string 而不是枚举，以匹配数据库实际值
+  event_types: EventType[]  // 数据库返回的是数组
   announcement_date: string
   expected_date: string | null
   source: string | null

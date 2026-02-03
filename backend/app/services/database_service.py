@@ -139,7 +139,8 @@ class DatabaseService:
             query["event_category"] = category
 
         if event_type:
-            query["event_types"] = event_type
+            # event_types 是数组，使用 $in 来匹配数组中包含该值的文档
+            query["event_types"] = {"$in": [event_type]}
 
         if start_date or end_date:
             date_query = {}

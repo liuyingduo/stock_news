@@ -137,22 +137,27 @@ const toggleExpand = () => {
 
 // 标准化类型为数组
 const normalizedTypes = computed(() => {
-  const type = props.event.event_type
-  if (Array.isArray(type)) {
-    return type
+  const types = props.event.event_types
+  if (Array.isArray(types)) {
+    return types
   }
-  return [type]
+  return []
 })
 
 // 获取类型标签颜色
 const getTypeTagType = (type: EventType) => {
   const typeMap: Record<string, any> = {
-    regulatory_policy: 'danger',
-    risk_warning: 'danger',
-    financial_report: 'info',
-    major_event: 'warning',
+    risk_crisis: 'danger',
+    regulatory: 'danger',
+    sentiment: 'warning',
+    price_vol: 'warning',
+    tech_innov: 'info',
+    capital_action: 'success',
     info_change: '',
-    other: 'info',
+    ops_info: '',
+    order_contract: 'info',
+    supply_chain: 'info',
+    geopolitics: 'danger',
   }
   return typeMap[type] || ''
 }
@@ -160,19 +165,17 @@ const getTypeTagType = (type: EventType) => {
 // 获取类型标签文本
 const getTypeLabel = (type: EventType) => {
   const labels: Record<string, string> = {
-    macro_geopolitics: '宏观地缘',
-    regulatory_policy: '监管政策',
-    market_sentiment: '市场情绪',
-    industrial_chain: '产业链',
-    core_sector: '核心板块',
-    major_event: '重大事项',
-    financial_report: '财务报告',
-    financing_announcement: '融资公告',
-    risk_warning: '风险提示',
-    asset_restructuring: '资产重组',
+    geopolitics: '地缘政治',
+    regulatory: '监管政策',
+    sentiment: '市场情绪',
+    tech_innov: '科技创新',
+    supply_chain: '供应链',
+    capital_action: '资本运作',
     info_change: '信息变更',
-    shareholding_change: '持股变动',
-    other: '其他',
+    ops_info: '运营信息',
+    order_contract: '订单合同',
+    price_vol: '价格波动',
+    risk_crisis: '风险危机',
   }
   return labels[type] || type
 }
@@ -302,7 +305,7 @@ const hasEntityReasons = computed(() => {
 
 .card-title {
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--text-primary, #f1f5f9);
   margin: 0 0 12px 0;
   line-height: 1.4;
@@ -380,7 +383,7 @@ const hasEntityReasons = computed(() => {
 
 .reason-label {
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--text-secondary, #94a3b8);
   margin-bottom: 4px;
 }
@@ -409,7 +412,7 @@ const hasEntityReasons = computed(() => {
 
 .entity-name {
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--text-primary, #f1f5f9);
 }
 

@@ -14,7 +14,12 @@
       "Bash(python:*)",
       "Bash(npm install:*)",
       "Bash(if not exist \"frontend\\\\src\\\\stores\" mkdir \"frontend\\\\src\\\\stores\")",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(pip install:*)",
+      "Bash(npm run dev)",
+      "Bash(pip uninstall:*)",
+      "Bash(curl:*)",
+      "Bash(findstr:*)"
     ]
   }
 }
