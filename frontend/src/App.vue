@@ -155,12 +155,10 @@ const navigateToSectors = () => {
 
 const setActiveFilter = (filterKey: string) => {
   activeFilter.value = filterKey
-  // TODO: Emit filter change event or update route query params
 }
 
 onMounted(() => {
   loadStats()
-  // TODO: 从API加载筛选器的实际数量
 })
 </script>
 
