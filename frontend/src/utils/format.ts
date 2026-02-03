@@ -71,3 +71,19 @@ export const getTypeLabel = (type: EventType): string => {
     }
     return labels[type] || type
 }
+
+/**
+ * 格式化来源显示
+ * @param source 原始来源字符串
+ * @returns 格式化后的来源
+ */
+export const formatSource = (source: string | undefined | null): string => {
+    if (!source) return '未知来源'
+    if (source.includes('财联社')) {
+        return '时讯'
+    }
+    if (source.includes('交易所')) {
+        return '证券交易所'
+    }
+    return source
+}

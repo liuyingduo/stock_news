@@ -81,7 +81,6 @@
               @click="setActiveFilter(filter.key)"
             >
               <span>{{ filter.label }}</span>
-              <span class="filter-count">{{ filter.count }}</span>
             </button>
           </div>
         </div>
@@ -128,16 +127,19 @@ const loadStats = async () => {
 
 // Filters
 const filters = ref([
-  { key: 'all', label: '全部事件', count: 0 },
-  { key: 'high-impact', label: '高影响', count: 0 },
-  { key: 'geopolitics', label: '地缘政治', count: 0 },
-  { key: 'markets', label: '市场动态', count: 0 },
-  { key: 'economy', label: '经济政策', count: 0 },
-  { key: 'technology', label: '科技发展', count: 0 },
-  { key: 'others', label: '其他', count: 0 }
+  { key: 'all', label: '全部事件', query: {} },
+  { key: 'high', label: '高价值', query: { min_impact: '0.7' } },
+  { key: 'medium', label: '中价值', query: { min_impact: '0.4', max_impact: '0.7' } },
+  { key: 'low', label: '低价值', query: { max_impact: '0.4' } }
 ])
 
-const activeFilter = ref('all')
+const activeFilter = computed(() => {
+  const q = route.query
+  if (q.min_impact === '0.7') return 'high'
+  if (q.min_impact === '0.4' && q.max_impact === '0.7') return 'medium'
+  if (q.max_impact === '0.4') return 'low'
+  return 'all'
+})
 
 const activeMenu = computed(() => route.path)
 
@@ -154,7 +156,10 @@ const navigateToSectors = () => {
 }
 
 const setActiveFilter = (filterKey: string) => {
-  activeFilter.value = filterKey
+  const filter = filters.value.find(f => f.key === filterKey)
+  if (filter) {
+    router.push({ path: '/', query: filter.query })
+  }
 }
 
 onMounted(() => {

@@ -55,8 +55,8 @@ const getColor = computed(() => {
   }
 
   // impact score (0 to 1)
-  if (value > 0.7) return '#ef4444'       // 高影响（红）
-  if (value > 0.4) return '#f97316'       // 中影响（橙）
+  if (value >= 0.7) return '#ef4444'       // 高影响（红）
+  if (value >= 0.4) return '#f59e0b'       // 中影响（橙）
   return '#94a3b8'                        // 低影响（灰）
 })
 

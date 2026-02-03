@@ -19,10 +19,10 @@
       </div>
       <div class="card-meta">
         <span v-if="event.source" class="meta-item">
-          📰 {{ event.source }}
+          📰 {{ formatSource(event.source) }}
         </span>
         <span class="meta-item">
-          📅 {{ formatRelativeDate(event.announcement_date) }}
+          📅 {{ formatDate(event.announcement_date) }}
         </span>
       </div>
     </div>
@@ -58,7 +58,7 @@
         <div v-if="event.ai_analysis?.impact_score != null" class="score-item">
           <span class="score-label">影响:</span>
           <span :class="['score-value', getImpactClass(event.ai_analysis.impact_score)]">
-            {{ event.ai_analysis.impact_score.toFixed(1) }}
+            {{ (event.ai_analysis.impact_score * 10).toFixed(1) }}
           </span>
         </div>
         <div v-if="event.ai_analysis?.sentiment_score != null" class="score-item">
@@ -104,7 +104,8 @@ import {
   getCategoryLabel, 
   getCategoryClass, 
   getTypeTagType, 
-  getTypeLabel 
+  getTypeLabel,
+  formatSource
 } from '../utils/format'
 import { 
   getImpactClass, 
@@ -135,18 +136,7 @@ const normalizedTypes = computed(() => {
 
 // Local functions removed. Using imported utils.
 
-const formatRelativeDate = (dateStr: string) => {
-  const date = new Date(dateStr)
-  const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
-  const diffDays = Math.floor(diffHours / 24)
-
-  if (diffHours < 1) return '刚刚'
-  if (diffHours < 24) return `${diffHours}h ago`
-  if (diffDays < 7) return `${diffDays}d ago`
-  return formatDate(dateStr)
-}
+// formatRelativeDate removed, using formatDate directly
 
 const handleClick = () => {
   emit('click', props.event)
@@ -305,45 +295,4 @@ const openOriginalLink = () => {
   font-weight: 400;
 }
 
-/* ========== Unified Color Scheme ========== */
-
-/* Impact: Magnitude-based (no good/bad implication) */
-.impact-high {
-  color: var(--text-primary) !important;  /* Bright white - prominent */
-  text-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
-}
-
-.impact-medium {
-  color: var(--accent-info) !important;  /* Blue - emphasis */
-}
-
-.impact-low {
-  color: var(--text-muted) !important;  /* Dim gray */
-}
-
-/* Sentiment: Directional (positive = good, negative = bad) */
-.sentiment-positive {
-  color: var(--accent-success) !important;  /* Green - positive */
-}
-
-.sentiment-negative {
-  color: var(--accent-danger) !important;  /* Red - negative */
-}
-
-.sentiment-neutral {
-  color: var(--text-secondary) !important;  /* Gray - neutral */
-}
-
-/* Confidence: Reliability (high = trustworthy) */
-.confidence-high {
-  color: var(--accent-success) !important;  /* Green - reliable */
-}
-
-.confidence-medium {
-  color: var(--accent-warning) !important;  /* Orange - caution */
-}
-
-.confidence-low {
-  color: var(--text-muted) !important;  /* Gray - unreliable */
-}
 </style>

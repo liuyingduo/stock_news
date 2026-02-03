@@ -127,6 +127,8 @@ class DatabaseService:
         search: Optional[str] = None,
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None,
+        min_impact: Optional[float] = None,
+        max_impact: Optional[float] = None,
     ) -> tuple[List[Dict[str, Any]], int]:
         """
         获取事件列表
@@ -149,6 +151,14 @@ class DatabaseService:
             if end_date:
                 date_query["$lte"] = end_date
             query["announcement_date"] = date_query
+       
+        if min_impact is not None or max_impact is not None:
+             impact_query = {}
+             if min_impact is not None:
+                 impact_query["$gte"] = min_impact
+             if max_impact is not None:
+                 impact_query["$lt"] = max_impact
+             query["ai_analysis.impact_score"] = impact_query
 
         if search:
             query["$or"] = [

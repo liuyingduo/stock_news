@@ -8,7 +8,7 @@
     <div class="card-header">
       <div class="header-left">
         <span v-if="event.source" class="source-tag">
-          {{ event.source }}
+          {{ formatSource(event.source) }}
         </span>
         <div class="type-tags">
           <el-tag
@@ -22,31 +22,34 @@
         </div>
       </div>
       <div class="header-right">
-        <span class="time-tag">{{ formatRelativeDate(event.announcement_date) }}</span>
+        <span class="time-tag">{{ formatDate(event.announcement_date) }}</span>
       </div>
     </div>
 
     <!-- Title -->
     <h3 class="card-title">{{ event.title }}</h3>
 
-    <!-- Score Section: 环形进度条 -->
-    <div v-if="event.ai_analysis" class="score-section">
-      <CircularProgress
-        v-if="event.ai_analysis.sentiment_score !== undefined"
-        :value="event.ai_analysis.sentiment_score"
-        :min="-1"
-        :max="1"
-        :size="compact ? 60 : 80"
-        label="多空"
-      />
-      <CircularProgress
-        v-if="event.ai_analysis.impact_score !== null"
-        :value="event.ai_analysis.impact_score || 0"
-        :min="0"
-        :max="1"
-        :size="compact ? 60 : 80"
-        label="影响"
-      />
+    <!-- Score Badges -->
+    <div v-if="event.ai_analysis" class="score-badges">
+      <!-- Impact Score -->
+      <div 
+        v-if="event.ai_analysis.impact_score !== null" 
+        class="score-badge"
+        :class="getImpactClass(event.ai_analysis.impact_score)"
+      >
+        <span class="score-label">影响</span>
+        <span class="score-num">{{ (event.ai_analysis.impact_score * 10).toFixed(1) }}</span>
+      </div>
+
+      <!-- Sentiment Score -->
+      <div 
+        v-if="event.ai_analysis.sentiment_score !== undefined" 
+        class="score-badge"
+        :class="getSentimentClass(event.ai_analysis.sentiment_score)"
+      >
+        <span class="score-label">多空</span>
+        <span class="score-num">{{ event.ai_analysis.sentiment_score.toFixed(1) }}</span>
+      </div>
     </div>
 
     <!-- Hype Tag -->
@@ -55,6 +58,7 @@
       class="hype-tag"
       type="warning"
       effect="dark"
+      size="small"
     >
       ⚡ 情绪炒作
     </el-tag>
@@ -68,6 +72,7 @@
           :key="stock.code"
           size="small"
           class="entity-tag"
+          effect="plain"
         >
           {{ stock.name }}
         </el-tag>
@@ -83,6 +88,7 @@
           size="small"
           type="info"
           class="entity-tag"
+          effect="plain"
         >
           {{ sector.name }}
         </el-tag>
@@ -117,8 +123,10 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import CircularProgress from './CircularProgress.vue'
 import type { Event, EventType } from '../../api/types'
+import { formatDate } from '../../utils/date'
+import { formatSource } from '../../utils/format'
+import { getImpactClass, getSentimentClass } from '../../utils/score'
 
 interface Props {
   event: Event
@@ -180,19 +188,7 @@ const getTypeLabel = (type: EventType) => {
   return labels[type] || type
 }
 
-// 格式化相对时间
-const formatRelativeDate = (dateStr: string) => {
-  const date = new Date(dateStr)
-  const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
-  const diffDays = Math.floor(diffHours / 24)
-
-  if (diffHours < 1) return '刚刚'
-  if (diffHours < 24) return `${diffHours}小时前`
-  if (diffDays < 7) return `${diffDays}天前`
-  return date.toLocaleDateString('zh-CN')
-}
+// formatRelativeDate removed, using formatDate directly
 
 // 判断是否有实体
 const hasStocks = computed(() => {
@@ -320,16 +316,52 @@ const hasEntityReasons = computed(() => {
   -webkit-line-clamp: 1;
 }
 
-.score-section {
+.score-badges {
   display: flex;
-  justify-content: center;
-  gap: 24px;
+  gap: 12px;
   margin: 12px 0;
 }
 
-.signal-card.compact .score-section {
-  gap: 12px;
+.score-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid transparent;
 }
+
+.score-label {
+  font-size: 11px;
+  color: var(--text-secondary, #94a3b8);
+}
+
+.score-num {
+  font-size: 13px;
+  font-weight: 700;
+  font-family: monospace;
+}
+
+/* Impact Badge Colors */
+:deep(.impact-high) { border-color: #ef4444; background: rgba(239, 68, 68, 0.1); }
+:deep(.impact-high .score-num) { color: #ef4444; }
+
+:deep(.impact-medium) { border-color: #f59e0b; background: rgba(245, 158, 11, 0.1); }
+:deep(.impact-medium .score-num) { color: #f59e0b; }
+
+:deep(.impact-low) { border-color: #94a3b8; }
+:deep(.impact-low .score-num) { color: #94a3b8; }
+
+/* Sentiment Badge Colors */
+:deep(.sentiment-positive) { border-color: #22c55e; background: rgba(34, 197, 94, 0.1); }
+:deep(.sentiment-positive .score-num) { color: #22c55e; }
+
+:deep(.sentiment-negative) { border-color: #ef4444; background: rgba(239, 68, 68, 0.1); }
+:deep(.sentiment-negative .score-num) { color: #ef4444; }
+
+:deep(.sentiment-neutral) { border-color: #94a3b8; }
+:deep(.sentiment-neutral .score-num) { color: #94a3b8; }
 
 .hype-tag {
   margin: 8px 0;

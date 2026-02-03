@@ -26,9 +26,9 @@ export function getSentimentClass(score: number | undefined | null): string {
 export function getImpactClass(score: number | undefined | null): string {
   if (score === undefined || score === null) return ''
   const numScore = Number(score)
-  if (numScore >= 0.8) return 'impact-high'    // Bright white
-  if (numScore >= 0.4) return 'impact-medium'  // Blue
-  return 'impact-low'                          // Gray
+  if (numScore >= 0.7) return 'impact-high'    // High impact
+  if (numScore >= 0.4) return 'impact-medium'  // Medium impact
+  return 'impact-low'                          // Low impact
 }
 
 /**

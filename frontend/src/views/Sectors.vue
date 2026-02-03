@@ -23,7 +23,7 @@
           </el-tag>
         </div>
         <div class="sector-code">{{ sector.code }}</div>
-        <div class="sector-events">{{ sector.related_event_ids.length }} 个相关事件</div>
+        <div class="sector-events">{{ sector.related_event_ids?.length || 0 }} 个相关事件</div>
       </div>
     </div>
 

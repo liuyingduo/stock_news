@@ -85,60 +85,102 @@
               v-for="event in items"
               :key="event.id"
               :event="event"
+              :class="{ 'is-active': selectedEvent?.id === event.id }"
+              style="cursor: pointer"
+              @click="selectedEvent = event"
             />
           </template>
         </InfiniteScroll>
       </div>
 
-      <!-- 右侧栏：重磅预警 + 风险避雷 -->
+      <!-- 右侧栏：动态战术板 (Tactical Panel) -->
       <div class="right-panel">
-        <!-- 重磅预警 -->
-        <div class="alert-section">
-          <h3 class="section-title section-alert">
-            <span class="title-icon">🚨</span>
-            重磅预警
-          </h3>
-          <div class="alert-list">
-            <div
-              v-for="event in store.highImpactEvents.slice(0, 5)"
-              :key="event.id"
-              class="alert-item"
-            >
-              <SignalCard :event="event" :compact="true" />
+        
+        <!-- Mode A: 选中事件深度分析 -->
+        <div v-if="selectedEvent" class="analysis-view">
+          <div class="panel-header">
+            <h3 class="panel-title">推演 (Analysis)</h3>
+            <el-button link size="small" @click="selectedEvent = null">
+              <el-icon><Close /></el-icon>
+            </el-button>
+          </div>
+          
+          <div class="reasoning-chain">
+            <div class="chain-node source-node">
+              <span class="node-label">EVENT</span>
+              <div class="node-content">{{ selectedEvent.title }}</div>
             </div>
-            <div v-if="store.highImpactEvents.length === 0" class="empty-hint">
-              暂无重磅预警
+            <div class="chain-arrow">↓</div>
+            <div class="chain-node logic-node">
+              <span class="node-label">LOGIC</span>
+              <div class="node-content">{{ selectedEvent.ai_analysis?.impact_reason || 'AI 分析中...' }}</div>
             </div>
+            <div class="chain-arrow">↓</div>
+            <div class="chain-node target-node">
+              <span class="node-label">TARGETS</span>
+              <div class="targets-grid">
+                <el-tag 
+                  v-for="stock in selectedEvent.ai_analysis?.affected_stocks || []" 
+                  :key="stock.code" 
+                  size="small" 
+                  class="mb-1 mr-1"
+                >
+                  {{ stock.name }}
+                </el-tag>
+                 <el-tag 
+                  v-for="sector in selectedEvent.ai_analysis?.affected_sectors || []" 
+                  :key="sector.code" 
+                  size="small" 
+                  type="info"
+                  class="mb-1 mr-1"
+                >
+                  {{ sector.name }}
+                </el-tag>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mock Pro/Con -->
+          <div class="intro-box">
+             <div class="intro-title">多空博弈 (AI Debate)</div>
+             <p class="intro-text text-gray-400 text-xs">此处将展示 AI 针对该事件的多空观点辩论（开发中）...</p>
           </div>
         </div>
 
-        <!-- 风险避雷 -->
-        <div class="risk-section">
-          <h3 class="section-title section-risk">
-            <span class="title-icon">⚠️</span>
-            风险避雷
-          </h3>
-          <div class="risk-list">
-            <div
-              v-for="event in store.riskEvents.slice(0, 5)"
-              :key="event.id"
-              class="risk-item"
-            >
-              <SignalCard :event="event" :compact="true" />
-            </div>
-            <div v-if="store.riskEvents.length === 0" class="empty-hint">
-              暂无风险事件
+        <!-- Mode B: 默认预警列表 -->
+        <div v-else class="alerts-view">
+          <div class="alert-section">
+            <h3 class="section-title section-alert">
+              <span class="title-icon">🚨</span> 高分预警 Top 5
+            </h3>
+            <div class="alert-list">
+              <div
+                v-for="event in store.highImpactEvents.slice(0, 5)"
+                :key="event.id"
+                class="mini-card"
+                @click="selectedEvent = event"
+              >
+                <div class="flex justify-between items-start">
+                   <div class="mini-score text-red-500 font-bold">{{ ((event.ai_analysis?.impact_score || 0) * 10).toFixed(1) }}</div>
+                   <div class="mini-time text-xs text-gray-500">{{ formatDate(event.announcement_date) }}</div>
+                </div>
+                <div class="mini-title text-sm mt-1 line-clamp-2 hover:text-blue-400 cursor-pointer">{{ event.title }}</div>
+              </div>
             </div>
           </div>
         </div>
       </div>
+
+
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { Refresh, Search } from '@element-plus/icons-vue'
+import { Refresh, Search, Close } from '@element-plus/icons-vue'
+import type { Event } from '../api/types'
+import { formatDate } from '../utils/date'
 import { useEcoSignalStore } from '../stores/ecoSignal'
 import SentimentGauge from '../components/ecoSignal/SentimentGauge.vue'
 import SignalCard from '../components/ecoSignal/SignalCard.vue'
@@ -146,6 +188,7 @@ import InfiniteScroll from '../components/common/InfiniteScroll.vue'
 import { useDebounceFn } from '@vueuse/core'
 
 const store = useEcoSignalStore()
+const selectedEvent = ref<Event | null>(null)
 
 // 筛选状态
 const categoryFilter = ref<string>()
@@ -211,7 +254,7 @@ onMounted(() => {
 
 .ecosignal-container {
   display: grid;
-  grid-template-columns: 280px 1fr 320px;
+  grid-template-columns: 300px 1fr 350px;
   gap: 24px;
   padding: 24px;
   flex: 1;
@@ -291,9 +334,17 @@ onMounted(() => {
 /* 中间栏 */
 .center-panel {
   overflow: hidden;
-  background: var(--bg-card, rgba(30, 41, 59, 0.3));
+  background: var(--bg-card, rgba(30, 41, 59, 0.5));
+  border: 1px solid var(--border-primary);
   border-radius: 12px;
-  border: 1px solid var(--border-primary, rgba(148, 163, 184, 0.1));
+  overflow: hidden;
+  transition: all 0.2s;
+}
+
+:deep(.signal-card.is-active) {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 1px var(--accent-primary);
+  background: rgba(59, 130, 246, 0.05); /* Blue tint */
 }
 
 /* 右侧栏 */
@@ -348,34 +399,82 @@ onMounted(() => {
   padding: 8px;
 }
 
-.empty-hint {
-  text-align: center;
-  padding: 20px;
-  color: var(--text-secondary, #94a3b8);
-  font-size: 13px;
+/* 右侧栏样式 */
+.right-panel {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-card);
+  border-left: 1px solid var(--border-primary);
+  border-radius: 8px;
+  overflow-y: auto;
 }
 
+.padding-box { padding: 16px; }
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.panel-title { font-size: 16px; font-weight: 600; margin: 0; }
+
+.reasoning-chain {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chain-node {
+  background: rgba(255, 255, 255, 0.03);
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border-primary);
+}
+
+.node-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.node-content { font-size: 14px; line-height: 1.5; }
+
+.chain-arrow { text-align: center; color: var(--text-muted); font-size: 16px; }
+
+/* Mini Cards */
+.mini-card {
+  padding: 12px;
+  border-bottom: 1px solid var(--border-primary);
+  transition: background 0.2s;
+}
+.mini-card:hover { background: rgba(255, 255, 255, 0.03); }
+
+.alert-section { padding: 0; }
+.section-title { padding: 16px; margin: 0; border-bottom: 1px solid var(--border-primary); font-size: 14px; }
+
+.intro-box { padding: 20px; text-align: center; border-top: 1px dashed var(--border-primary); margin-top: 20px;}
+
+
 /* 响应式布局 */
-@media (max-width: 1400px) {
+@media (max-width: 1024px) {
   .ecosignal-container {
     grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr auto;
+    grid-template-rows: auto 1fr;
     overflow-y: auto;
   }
 
   .left-panel {
-    order: 2;
     overflow: visible;
   }
 
   .center-panel {
-    order: 1;
     min-height: 500px;
-  }
-
-  .right-panel {
-    order: 3;
-    overflow: visible;
   }
 
   .stat-cards {

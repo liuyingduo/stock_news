@@ -105,6 +105,8 @@ export interface EventsQuery {
   search?: string
   start_date?: string
   end_date?: string
+  min_impact?: number
+  max_impact?: number
 }
 
 export interface PaginatedResponse<T> {

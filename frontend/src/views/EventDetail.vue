@@ -23,7 +23,7 @@
           </el-tag>
         </div>
         <div class="header-meta">
-          <span v-if="event.source" class="meta-item">📰 {{ event.source }}</span>
+          <span v-if="event.source" class="meta-item">📰 {{ formatSource(event.source) }}</span>
           <span class="meta-item">📅 {{ formatDate(event.announcement_date) }}</span>
         </div>
       </div>
@@ -123,7 +123,8 @@ import {
   getCategoryLabel, 
   getCategoryClass, 
   getTypeTagType, 
-  getTypeLabel 
+  getTypeLabel,
+  formatSource
 } from '../utils/format'
 import { 
   getImpactClass, 
@@ -313,43 +314,7 @@ onMounted(() => {
   text-align: center;
 }
 
-/* Score color classes */
-.impact-high {
-  color: var(--text-primary) !important;
-  text-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
-}
 
-.impact-medium {
-  color: var(--accent-info) !important;
-}
-
-.impact-low {
-  color: var(--text-muted) !important;
-}
-
-.sentiment-positive {
-  color: var(--accent-success) !important;
-}
-
-.sentiment-negative {
-  color: var(--accent-danger) !important;
-}
-
-.sentiment-neutral {
-  color: var(--text-secondary) !important;
-}
-
-.confidence-high {
-  color: var(--accent-success) !important;
-}
-
-.confidence-medium {
-  color: var(--accent-warning) !important;
-}
-
-.confidence-low {
-  color: var(--text-muted) !important;
-}
 
 @media (max-width: 768px) {
   .scores-row {

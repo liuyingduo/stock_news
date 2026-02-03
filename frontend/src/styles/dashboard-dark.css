@@ -9,33 +9,51 @@
   --bg-panel: rgba(42, 42, 62, 0.8);
   --bg-hover: #3a3a4e;
 
-  /* 强调色 - 红色/橙色系统 */
-  --accent-primary: #ff4d4d;
+  /* Slate Palette (Professional Financial Theme) */
+  --bg-primary: #020617;
+  /* Slate 950 */
+  --bg-secondary: #0f172a;
+  /* Slate 900 */
+  --bg-card: #1e293b;
+  /* Slate 800 */
+  --text-primary: #f8fafc;
+  /* Slate 50 */
+  --text-secondary: #94a3b8;
+  /* Slate 400 */
+  --text-muted: #64748b;
+  /* Slate 500 */
+  --border-primary: #334155;
+  /* Slate 700 */
+
+  /* Accents */
+  --accent-primary: #3b82f6;
+  /* Blue 500 (Primary Brand) */
   --accent-secondary: #f59e0b;
-  --accent-success: #4ade80;
-  --accent-warning: #F59E0B;  /* 警告橙 - 与 secondary 相同 */
-  --accent-danger: #EF4444;   /* 危险红 - 用于负面信息 */
+  /* Amber 500 (Warning/Medium) */
+  --accent-danger: #ef4444;
+  /* Red 500 (Bearish/High Impact) */
+  --accent-success: #10b981;
+  /* Emerald 500 (Bullish - Clean Green) */
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-card: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-hover: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+
+  /* 警告橙 - 与 secondary 相同 */
   --accent-info: #3b82f6;
   --accent-cyan: #06b6d4;
 
-  /* 文字色 */
-  --text-primary: #ffffff;
-  --text-secondary: #a0a0a0;
-  --text-muted: #6b7280;
-
   /* 边框 */
-  --border-primary: #2a2a3e;
   --border-accent: #ff4d4d;
 
   /* 阴影 */
-  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.3);
   --shadow-panel: 0 4px 12px rgba(0, 0, 0, 0.4);
   --shadow-glow: 0 0 16px rgba(255, 77, 77, 0.3);
 
   /* 圆角 */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
   --radius-pill: 20px;
 
   /* 过渡 */
@@ -45,11 +63,16 @@
 
   /* ===== EcoSignal 专用变量 ===== */
   /* 分值颜色 */
-  --score-bullish: #ef4444;      /* 极度利好 >0.7 */
-  --score-bullish-mid: #f97316;  /* 利好 0.3~0.7 */
-  --score-neutral: #94a3b8;      /* 中性 ±0.1 */
-  --score-bearish-mid: #64748b;  /* 利空 -0.3~-0.7 */
-  --score-bearish: #22c55e;      /* 极度利空 <-0.7 */
+  --score-bullish: #ef4444;
+  /* 极度利好 >0.7 */
+  --score-bullish-mid: #f97316;
+  /* 利好 0.3~0.7 */
+  --score-neutral: #94a3b8;
+  /* 中性 ±0.1 */
+  --score-bearish-mid: #64748b;
+  /* 利空 -0.3~-0.7 */
+  --score-bearish: #22c55e;
+  /* 极度利空 <-0.7 */
 
   /* 信号卡片 */
   --signal-card-bg: rgba(30, 41, 59, 0.8);
@@ -70,12 +93,15 @@ body,
   height: 100%;
   /* 使用更细、更现代的字体 */
   font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB',
-               'Microsoft YaHei', 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
-               'Noto Sans SC', sans-serif;
-  font-weight: 400; /* 使用常规字重，不要加粗 */
-  font-size: 14px; /* 稍微调小字号 */
+    'Microsoft YaHei', 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    'Noto Sans SC', sans-serif;
+  font-weight: 400;
+  /* 使用常规字重，不要加粗 */
+  font-size: 14px;
+  /* 稍微调小字号 */
   line-height: 1.6;
-  letter-spacing: 0.01em; /* 轻微增加字间距，更优雅 */
+  letter-spacing: 0.01em;
+  /* 轻微增加字间距，更优雅 */
   background-color: var(--bg-primary);
   color: var(--text-primary);
   overflow-x: hidden;
@@ -83,12 +109,19 @@ body,
 
 /* 全局字体调整 */
 * {
-  font-weight: 400; /* 所有元素默认使用常规字重 */
+  font-weight: 400;
+  /* 所有元素默认使用常规字重 */
 }
 
 /* 标题字重 */
-h1, h2, h3, h4, h5, h6 {
-  font-weight: 500; /* 标题使用中等字重，不会太粗 */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: 500;
+  /* 标题使用中等字重，不会太粗 */
   margin: 0;
 }
 
@@ -125,10 +158,13 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 @keyframes pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
     box-shadow: 0 0 8px var(--accent-success);
   }
+
   50% {
     opacity: 0.6;
     box-shadow: 0 0 12px var(--accent-success);
@@ -667,18 +703,17 @@ h1, h2, h3, h4, h5, h6 {
   0% {
     background-position: -1000px 0;
   }
+
   100% {
     background-position: 1000px 0;
   }
 }
 
 .loading-skeleton {
-  background: linear-gradient(
-    90deg,
-    var(--bg-card) 0px,
-    var(--bg-hover) 50%,
-    var(--bg-card) 100%
-  );
+  background: linear-gradient(90deg,
+      var(--bg-card) 0px,
+      var(--bg-hover) 50%,
+      var(--bg-card) 100%);
   background-size: 1000px 100%;
   animation: shimmer 2s infinite;
   border-radius: var(--radius-sm);
@@ -731,4 +766,48 @@ h1, h2, h3, h4, h5, h6 {
   .header-center {
     flex: 1;
   }
+}
+
+/* ===== Score Color Classes ===== */
+
+/* Impact: Magnitude-based */
+.impact-high {
+  color: var(--accent-danger) !important;
+  /* Red for high impact */
+}
+
+.impact-medium {
+  color: var(--accent-secondary) !important;
+  /* Orange for medium */
+}
+
+.impact-low {
+  color: var(--text-muted) !important;
+  /* Gray */
+}
+
+/* Sentiment: Directional */
+.sentiment-positive {
+  color: var(--accent-success) !important;
+}
+
+.sentiment-negative {
+  color: var(--accent-danger) !important;
+}
+
+.sentiment-neutral {
+  color: var(--text-secondary) !important;
+}
+
+/* Confidence: Reliability */
+.confidence-high {
+  color: var(--accent-success) !important;
+}
+
+.confidence-medium {
+  color: var(--accent-warning) !important;
+}
+
+.confidence-low {
+  color: var(--text-muted) !important;
 }

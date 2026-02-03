@@ -24,6 +24,8 @@ async def get_events(
     search: Optional[str] = Query(None, description="搜索关键词"),
     start_date: Optional[str] = Query(None, description="开始日期 (YYYY-MM-DD)"),
     end_date: Optional[str] = Query(None, description="结束日期 (YYYY-MM-DD)"),
+    min_impact: Optional[float] = Query(None, description="最小影响分数"),
+    max_impact: Optional[float] = Query(None, description="最大影响分数"),
 ):
     """
     获取事件列表
@@ -55,6 +57,8 @@ async def get_events(
         search=search,
         start_date=start_dt,
         end_date=end_dt,
+        min_impact=min_impact,
+        max_impact=max_impact,
     )
 
     return PaginatedResponse(items=events, total=total)

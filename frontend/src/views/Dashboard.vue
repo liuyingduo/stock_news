@@ -91,8 +91,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, reactive, onMounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Search, Refresh } from '@element-plus/icons-vue'
 import { getEvents, analyzeEvent } from '../api/events'
@@ -100,6 +100,7 @@ import type { Event } from '../api/types'
 import EventCard from '../components/EventCard.vue'
 
 const router = useRouter()
+const route = useRoute()
 
 const loading = ref(false)
 const events = ref<Event[]>([])
@@ -116,6 +117,8 @@ const queryParams = reactive({
   search: '',
   start_date: '',
   end_date: '',
+  min_impact: undefined as number | undefined,
+  max_impact: undefined as number | undefined,
 })
 
 const loadEvents = async () => {
@@ -176,9 +179,23 @@ const handleEventClick = (event: Event) => {
   router.push({ name: 'EventDetail', params: { id: event.id } })
 }
 
+const syncQueryParams = () => {
+  const q = route.query
+  queryParams.category = (q.category as string) || ''
+  queryParams.min_impact = q.min_impact ? Number(q.min_impact) : undefined
+  queryParams.max_impact = q.max_impact ? Number(q.max_impact) : undefined
+}
+
 onMounted(() => {
+  syncQueryParams()
   loadEvents()
 })
+
+watch(() => route.query, () => {
+  syncQueryParams()
+  handleSearch()
+})
+
 </script>
 
 <style scoped>
@@ -222,7 +239,7 @@ onMounted(() => {
 
 .events-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
   gap: 16px;
 }
 
