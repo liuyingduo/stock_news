@@ -9,19 +9,41 @@ export enum EventCategory {
 export enum EventType {
   // 全球大事
   GEOPOLITICS = 'geopolitics',
+  MACRO_ECON = 'macro_econ',
+
   // 政策风向
   REGULATORY = 'regulatory',
+  MARKET_LIQUIDITY = 'liquidity',
   MARKET_SENTIMENT = 'sentiment',
+
   // 行业动向
   TECH_INNOV = 'tech_innov',
   SUPPLY_CHAIN = 'supply_chain',
   PRICE_VOL = 'price_vol',
-  // 公司动态
+
+  // 公司动态 - 1. 业绩与业务
+  FINANCIAL_PERFORMANCE = 'fin_perf',
+  ORDER_CONTRACT = 'order_contract',
+
+  // 公司动态 - 2. 资本运作
+  M_A_RESTRUCTURING = 'merger_re',
+  CAPITAL_ACTION = 'capital_action',
+
+  // 公司动态 - 3. 治理与股东行为
+  SHARE_BUYBACK = 'buyback',
+  HOLDER_CHANGE = 'holder_change',
+  INSIDER_TRANSACTION = 'insider_trans',
+
+  // 公司动态 - 4. 风险与负面
+  RISK_CRISIS = 'risk_crisis',
+  LITIGATION_ARBITRATION = 'litigation',
+
+  // 公司动态 - 5. 常规与变更
   INFO_CHANGE = 'info_change',
   OPS_INFO = 'ops_info',
-  ORDER_CONTRACT = 'order_contract',
-  CAPITAL_ACTION = 'capital_action',
-  RISK_CRISIS = 'risk_crisis',
+
+  // 其他
+  OTHER = 'other',
 }
 
 export interface AffectedStock {

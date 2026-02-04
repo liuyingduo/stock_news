@@ -30,17 +30,36 @@
         class="filter-select"
         @change="handleSearch"
       >
-        <el-option label="地缘政治" value="geopolitics" />
-        <el-option label="监管政策" value="regulatory" />
-        <el-option label="市场情绪" value="sentiment" />
-        <el-option label="科技创新" value="tech_innov" />
-        <el-option label="供应链" value="supply_chain" />
-        <el-option label="价格波动" value="price_vol" />
-        <el-option label="信息变更" value="info_change" />
-        <el-option label="运营信息" value="ops_info" />
-        <el-option label="订单合同" value="order_contract" />
-        <el-option label="资本运作" value="capital_action" />
-        <el-option label="风险危机" value="risk_crisis" />
+        <el-option-group label="全球与宏观">
+          <el-option label="地缘政治" value="geopolitics" />
+          <el-option label="宏观经济" value="macro_econ" />
+        </el-option-group>
+        <el-option-group label="政策与情绪">
+          <el-option label="监管政策" value="regulatory" />
+          <el-option label="资金流向" value="liquidity" />
+          <el-option label="市场情绪" value="sentiment" />
+        </el-option-group>
+        <el-option-group label="行业动向">
+          <el-option label="科技创新" value="tech_innov" />
+          <el-option label="供应链" value="supply_chain" />
+          <el-option label="价格波动" value="price_vol" />
+        </el-option-group>
+        <el-option-group label="公司动态">
+          <el-option label="业绩披露" value="fin_perf" />
+          <el-option label="订单合同" value="order_contract" />
+          <el-option label="并购重组" value="merger_re" />
+          <el-option label="资本运作" value="capital_action" />
+          <el-option label="股份回购" value="buyback" />
+          <el-option label="股东变动" value="holder_change" />
+          <el-option label="内部交易" value="insider_trans" />
+          <el-option label="风险危机" value="risk_crisis" />
+          <el-option label="诉讼仲裁" value="litigation" />
+          <el-option label="信息变更" value="info_change" />
+          <el-option label="运营信息" value="ops_info" />
+        </el-option-group>
+        <el-option-group label="其他">
+          <el-option label="其他事件" value="other" />
+        </el-option-group>
       </el-select>
       <el-date-picker
         v-model="dateRange"

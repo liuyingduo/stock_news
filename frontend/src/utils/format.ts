@@ -38,14 +38,28 @@ export const getCategoryLabel = (category: string): string => {
 export const getTypeTagType = (type: EventType): 'primary' | 'success' | 'info' | 'warning' | 'danger' | undefined => {
     const typeMap: Record<string, 'primary' | 'success' | 'info' | 'warning' | 'danger'> = {
         risk_crisis: 'danger',
+        litigation: 'danger',
         regulatory: 'danger',
+        geopolitics: 'danger',
+
         sentiment: 'warning',
         price_vol: 'warning',
+        holder_change: 'warning',
+        macro_econ: 'warning',
+
         tech_innov: 'info',
-        capital_action: 'success',
         order_contract: 'info',
         supply_chain: 'info',
-        geopolitics: 'danger',
+        insider_trans: 'info',
+        ops_info: 'info',
+        info_change: 'info',
+        other: 'info',
+
+        capital_action: 'success',
+        liquidity: 'success',
+        fin_perf: 'success',
+        merger_re: 'success',
+        buyback: 'success',
     }
     return typeMap[type]
 }
@@ -58,16 +72,31 @@ export const getTypeTagType = (type: EventType): 'primary' | 'success' | 'info' 
 export const getTypeLabel = (type: EventType): string => {
     const labels: Record<string, string> = {
         geopolitics: '地缘政治',
+        macro_econ: '宏观经济',
+
         regulatory: '监管政策',
+        liquidity: '资金流向',
         sentiment: '市场情绪',
+
         tech_innov: '科技创新',
         supply_chain: '供应链',
+        price_vol: '价格波动',
+
+        fin_perf: '业绩披露',
+        order_contract: '订单合同',
+        merger_re: '并购重组',
         capital_action: '资本运作',
+        buyback: '股份回购',
+        holder_change: '股东变动',
+        insider_trans: '内部交易',
+
+        risk_crisis: '风险危机',
+        litigation: '诉讼仲裁',
+
         info_change: '信息变更',
         ops_info: '运营信息',
-        order_contract: '订单合同',
-        price_vol: '价格波动',
-        risk_crisis: '风险危机',
+
+        other: '其他事件',
     }
     return labels[type] || type
 }

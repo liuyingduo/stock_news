@@ -125,68 +125,8 @@
 import { ref, computed } from 'vue'
 import type { Event, EventType } from '../../api/types'
 import { formatDate } from '../../utils/date'
-import { formatSource } from '../../utils/format'
+import { formatSource, getTypeLabel, getTypeTagType } from '../../utils/format'
 import { getImpactClass, getSentimentClass } from '../../utils/score'
-
-interface Props {
-  event: Event
-  compact?: boolean
-}
-
-const props = withDefaults(defineProps<Props>(), {
-  compact: false,
-})
-
-const expanded = ref(false)
-
-const toggleExpand = () => {
-  expanded.value = !expanded.value
-}
-
-// 标准化类型为数组
-const normalizedTypes = computed(() => {
-  const types = props.event.event_types
-  if (Array.isArray(types)) {
-    return types
-  }
-  return []
-})
-
-// 获取类型标签颜色
-const getTypeTagType = (type: EventType) => {
-  const typeMap: Record<string, any> = {
-    risk_crisis: 'danger',
-    regulatory: 'danger',
-    sentiment: 'warning',
-    price_vol: 'warning',
-    tech_innov: 'info',
-    capital_action: 'success',
-    info_change: '',
-    ops_info: '',
-    order_contract: 'info',
-    supply_chain: 'info',
-    geopolitics: 'danger',
-  }
-  return typeMap[type] || ''
-}
-
-// 获取类型标签文本
-const getTypeLabel = (type: EventType) => {
-  const labels: Record<string, string> = {
-    geopolitics: '地缘政治',
-    regulatory: '监管政策',
-    sentiment: '市场情绪',
-    tech_innov: '科技创新',
-    supply_chain: '供应链',
-    capital_action: '资本运作',
-    info_change: '信息变更',
-    ops_info: '运营信息',
-    order_contract: '订单合同',
-    price_vol: '价格波动',
-    risk_crisis: '风险危机',
-  }
-  return labels[type] || type
-}
 
 // formatRelativeDate removed, using formatDate directly
 
