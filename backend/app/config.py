@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     database_name: str = "stock_news"
 
     # Zhipu AI
-    zhipu_api_key: str
+    zhipu_api_key: str = ""
 
     # API
     api_host: str = "0.0.0.0"
@@ -20,9 +20,15 @@ class Settings(BaseSettings):
     # CORS
     cors_origins: List[str] = ["*"]
 
+    # JWT Authentication
+    jwt_secret_key: str = "your-secret-key-change-in-production"
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 60 * 24 * 7  # 7 days
+
     class Config:
         env_file = ".env"
         case_sensitive = False
 
 
 settings = Settings()
+

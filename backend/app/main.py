@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.core.database import connect_to_mongo, close_mongo_connection
-from app.routers import events, sectors, stocks, dashboard
+from app.routers import events, sectors, stocks, dashboard, auth
 import uvicorn
 
 
@@ -33,6 +33,7 @@ app.add_middleware(
 )
 
 # 注册路由
+app.include_router(auth.router)
 app.include_router(events.router)
 app.include_router(sectors.router)
 app.include_router(stocks.router)

@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+    .text-glow-blue {
+        text-shadow: 0 0 12px rgba(23, 84, 207, 0.5);
+    }
+
+    .text-glow-gold {
+        text-shadow: 0 0 12px rgba(212, 175, 55, 0.4);
+    }
+
+    .bg-glass {
+        background: rgba(21, 25, 33, 0.7);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+    }
+
+    .tabular-nums {
+        font-variant-numeric: tabular-nums;
+    }
+}

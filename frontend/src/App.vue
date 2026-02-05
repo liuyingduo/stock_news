@@ -1,5 +1,11 @@
 <template>
-  <div class="app-container">
+  <!-- Auth pages (login/register) - no layout wrapper -->
+  <template v-if="isAuthPage">
+    <router-view />
+  </template>
+  
+  <!-- Main app with layout -->
+  <div v-else class="app-container">
     <!-- Header -->
     <header class="dashboard-header">
       <div class="header-left">
@@ -102,6 +108,11 @@ import { TrendCharts, DataBoard, PieChart } from '@element-plus/icons-vue'
 const route = useRoute()
 const router = useRouter()
 
+// 判断是否是认证页面（登录/注册）
+const isAuthPage = computed(() => {
+  return route.path === '/login' || route.path === '/register'
+})
+
 // Stats (从API获取)
 const stats = ref({
   eventsCount: '-',
@@ -163,7 +174,10 @@ const setActiveFilter = (filterKey: string) => {
 }
 
 onMounted(() => {
-  loadStats()
+  // 只在非认证页面加载统计
+  if (!isAuthPage.value) {
+    loadStats()
+  }
 })
 </script>
 
