@@ -128,7 +128,27 @@ import { formatDate } from '../../utils/date'
 import { formatSource, getTypeLabel, getTypeTagType } from '../../utils/format'
 import { getImpactClass, getSentimentClass } from '../../utils/score'
 
-// formatRelativeDate removed, using formatDate directly
+// Props 定义
+const props = defineProps<{
+  event: Event
+  compact?: boolean
+}>()
+
+// 展开状态
+const expanded = ref(false)
+
+// 切换展开
+const toggleExpand = () => {
+  expanded.value = !expanded.value
+}
+
+// 规范化事件类型
+const normalizedTypes = computed<EventType[]>(() => {
+  const eventTypes = props.event.event_types
+  if (!eventTypes) return []
+  if (Array.isArray(eventTypes)) return eventTypes
+  return [eventTypes]
+})
 
 // 判断是否有实体
 const hasStocks = computed(() => {
