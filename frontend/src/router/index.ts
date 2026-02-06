@@ -2,42 +2,52 @@ import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
+// 扩展路由 Meta 类型
+declare module 'vue-router' {
+  interface RouteMeta {
+    layout?: 'default' | 'auth'
+    requiresAuth?: boolean
+    guest?: boolean
+    title?: string
+  }
+}
+
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
     name: 'Dashboard',
     component: () => import('../views/Dashboard.vue'),
-    meta: { requiresAuth: true }
+    meta: { layout: 'default', requiresAuth: true }
   },
   {
     path: '/login',
     name: 'Login',
     component: () => import('../views/Login.vue'),
-    meta: { guest: true }
+    meta: { layout: 'auth', guest: true }
   },
   {
     path: '/register',
     name: 'Register',
     component: () => import('../views/Register.vue'),
-    meta: { guest: true }
+    meta: { layout: 'auth', guest: true }
   },
   {
     path: '/events/:id',
     name: 'EventDetail',
     component: () => import('../views/EventDetail.vue'),
-    meta: { title: '事件详情', requiresAuth: true },
+    meta: { layout: 'default', title: '事件详情', requiresAuth: true },
   },
   {
     path: '/sectors',
     name: 'Sectors',
     component: () => import('../views/Sectors.vue'),
-    meta: { requiresAuth: true }
+    meta: { layout: 'default', requiresAuth: true }
   },
   {
     path: '/ecosignal',
     name: 'EcoSignal',
     component: () => import('../views/EcoSignal.vue'),
-    meta: { title: '智金通 EcoSignal', requiresAuth: true },
+    meta: { layout: 'default', title: '智金通 EcoSignal', requiresAuth: true },
   },
 ]
 

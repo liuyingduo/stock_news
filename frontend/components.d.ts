@@ -8,14 +8,27 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     CircularProgress: typeof import('./src/components/ecoSignal/CircularProgress.vue')['default']
+    ElButton: typeof import('element-plus/es')['ElButton']
+    ElDatePicker: typeof import('element-plus/es')['ElDatePicker']
+    ElEmpty: typeof import('element-plus/es')['ElEmpty']
     ElIcon: typeof import('element-plus/es')['ElIcon']
+    ElInput: typeof import('element-plus/es')['ElInput']
     ElMenu: typeof import('element-plus/es')['ElMenu']
     ElMenuItem: typeof import('element-plus/es')['ElMenuItem']
+    ElOption: typeof import('element-plus/es')['ElOption']
+    ElOptionGroup: typeof import('element-plus/es')['ElOptionGroup']
+    ElPagination: typeof import('element-plus/es')['ElPagination']
+    ElSelect: typeof import('element-plus/es')['ElSelect']
+    ElTag: typeof import('element-plus/es')['ElTag']
+    ElTooltip: typeof import('element-plus/es')['ElTooltip']
     EventCard: typeof import('./src/components/EventCard.vue')['default']
     InfiniteScroll: typeof import('./src/components/common/InfiniteScroll.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     SentimentGauge: typeof import('./src/components/ecoSignal/SentimentGauge.vue')['default']
     SignalCard: typeof import('./src/components/ecoSignal/SignalCard.vue')['default']
+  }
+  export interface ComponentCustomProperties {
+    vLoading: typeof import('element-plus/es')['ElLoadingDirective']
   }
 }

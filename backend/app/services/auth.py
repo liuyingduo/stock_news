@@ -1,7 +1,8 @@
 """认证服务 - 密码哈希和JWT处理"""
 from datetime import datetime, timedelta
 from typing import Optional
-from passlib.context import CryptContext
+from argon2 import PasswordHasher
+from argon2.exceptions import VerifyMismatchError
 from jose import JWTError, jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -9,21 +10,25 @@ from app.config import settings
 from app.core.database import get_database
 from app.models.user import TokenData, UserResponse
 
-# 密码哈希上下文
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Argon2 密码哈希器（默认使用 Argon2id 变体）
+ph = PasswordHasher()
 
 # OAuth2 Bearer Token
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
 
 
 def hash_password(password: str) -> str:
-    """对密码进行哈希处理"""
-    return pwd_context.hash(password)
+    """对密码进行哈希处理（使用 Argon2id）"""
+    return ph.hash(password)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """验证密码"""
-    return pwd_context.verify(plain_password, hashed_password)
+    try:
+        ph.verify(hashed_password, plain_password)
+        return True
+    except VerifyMismatchError:
+        return False
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:

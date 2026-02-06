@@ -30,4 +30,7 @@ app.use(pinia)
 app.use(router)
 app.use(ElementPlus)
 
-app.mount('#app')
+// 等待路由准备就绪后再挂载
+router.isReady().then(() => {
+  app.mount('#app')
+})
