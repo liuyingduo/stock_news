@@ -4,7 +4,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { UserInfo } from '@/api/auth'
-import { getCurrentUser, login as loginApi, type LoginData } from '@/api/auth'
+import { getCurrentUser, login as loginApi, updateCurrentUser, type LoginData } from '@/api/auth'
 
 const TOKEN_KEY = 'auth_token'
 
@@ -67,6 +67,18 @@ export const useAuthStore = defineStore('auth', () => {
         }
     }
 
+    // 更新用户信息
+    async function updateProfile(data: { username?: string; phone?: string }) {
+        if (!token.value) return
+
+        loading.value = true
+        try {
+            user.value = await updateCurrentUser(data)
+        } finally {
+            loading.value = false
+        }
+    }
+
     // 初始化 - 如果有token则获取用户信息
     async function init() {
         if (token.value) {
@@ -86,6 +98,7 @@ export const useAuthStore = defineStore('auth', () => {
         username,
         login,
         logout,
+        updateProfile,
         fetchUser,
         init,
         setToken,

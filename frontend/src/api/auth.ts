@@ -20,6 +20,7 @@ export interface UserInfo {
   id: string
   username: string
   email: string
+  phone?: string
   created_at: string
   is_active: boolean
 }
@@ -48,4 +49,11 @@ export const login = (data: LoginData): Promise<TokenResponse> => {
  */
 export const getCurrentUser = (): Promise<UserInfo> => {
   return api.get('/auth/me')
+}
+
+/**
+ * 更新当前用户信息
+ */
+export const updateCurrentUser = (data: Partial<Pick<UserInfo, 'username' | 'phone'>>): Promise<UserInfo> => {
+  return api.put('/auth/me', data)
 }

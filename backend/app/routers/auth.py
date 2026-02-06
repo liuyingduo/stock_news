@@ -2,7 +2,7 @@
 from datetime import datetime, timedelta
 from fastapi import APIRouter, HTTPException, status, Depends
 from app.core.database import get_database
-from app.models.user import UserCreate, UserLogin, UserResponse, Token
+from app.models.user import UserCreate, UserLogin, UserResponse, UserUpdate, Token
 from app.services.auth import (
     hash_password, 
     verify_password, 
@@ -63,6 +63,7 @@ async def register(user_data: UserCreate):
         id=str(result.inserted_id),
         username=user_doc["username"],
         email=user_doc["email"],
+        phone=user_doc.get("phone"),
         created_at=user_doc["created_at"],
         is_active=user_doc["is_active"]
     )
@@ -115,3 +116,45 @@ async def get_me(current_user: UserResponse = Depends(get_current_user)):
             headers={"WWW-Authenticate": "Bearer"},
         )
     return current_user
+
+
+@router.put("/me", response_model=UserResponse)
+async def update_me(
+    update_data: UserUpdate,
+    current_user: UserResponse = Depends(get_current_user),
+):
+    """更新当前登录用户信息"""
+    if not current_user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="未登录",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    db = get_database()
+    update_fields = {}
+
+    if update_data.username is not None and update_data.username != current_user.username:
+        existing_username = await db.users.find_one({"username": update_data.username})
+        if existing_username and str(existing_username.get("_id")) != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="该用户名已被使用"
+            )
+        update_fields["username"] = update_data.username
+
+    if update_data.phone is not None:
+        update_fields["phone"] = update_data.phone
+
+    if update_fields:
+        await db.users.update_one({"email": current_user.email}, {"$set": update_fields})
+
+    user = await db.users.find_one({"email": current_user.email})
+    return UserResponse(
+        id=str(user["_id"]),
+        username=user["username"],
+        email=user["email"],
+        phone=user.get("phone"),
+        created_at=user["created_at"],
+        is_active=user.get("is_active", True)
+    )

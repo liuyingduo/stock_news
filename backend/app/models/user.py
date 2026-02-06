@@ -23,8 +23,15 @@ class UserResponse(BaseModel):
     id: str = Field(..., description="用户ID")
     username: str = Field(..., description="用户名")
     email: str = Field(..., description="邮箱地址")
+    phone: Optional[str] = Field(None, description="手机号码")
     created_at: datetime = Field(..., description="创建时间")
     is_active: bool = Field(default=True, description="是否激活")
+
+
+class UserUpdate(BaseModel):
+    """用户信息更新请求"""
+    username: Optional[str] = Field(None, min_length=2, max_length=50, description="用户名")
+    phone: Optional[str] = Field(None, description="手机号码")
 
 
 class UserInDB(BaseModel):

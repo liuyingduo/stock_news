@@ -77,6 +77,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> Optional[User
         id=str(user["_id"]),
         username=user["username"],
         email=user["email"],
+        phone=user.get("phone"),
         created_at=user["created_at"],
         is_active=user.get("is_active", True)
     )
