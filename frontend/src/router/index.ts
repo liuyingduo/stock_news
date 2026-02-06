@@ -57,26 +57,30 @@ const router = createRouter({
 })
 
 // 路由守卫
-router.beforeEach(async (to, from, next) => {
+router.beforeEach(async (to, _from, next) => {
   const authStore = useAuthStore()
 
-  // 初始化认证状态
+  // 初始化认证状态：有 token 但没有 user 时尝试获取用户信息
   if (authStore.token && !authStore.user) {
     try {
       await authStore.fetchUser()
-    } catch (error) {
-      // Token无效或过期
+    } catch {
+      // Token 无效或过期，清理状态
+      authStore.logout()
     }
   }
 
+  // 重新评估登录状态（fetchUser 完成后）
+  const isAuthenticated = !!authStore.token && !!authStore.user
+
   // 需要登录的页面
-  if (to.meta.requiresAuth && !authStore.isLoggedIn) {
+  if (to.meta.requiresAuth && !isAuthenticated) {
     next('/login')
     return
   }
 
   // 已登录状态下访问游客页面（登录/注册），重定向到首页
-  if (to.meta.guest && authStore.isLoggedIn) {
+  if (to.meta.guest && isAuthenticated) {
     next('/')
     return
   }
