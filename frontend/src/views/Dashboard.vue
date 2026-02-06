@@ -116,7 +116,7 @@
       </aside>
 
       <main ref="mainRef" class="flex-1 overflow-y-auto bg-background-dark p-6 custom-scrollbar">
-        <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div class="max-w-7xl mx-auto grid grid-cols-1 gap-5">
           <div class="col-span-full flex items-center justify-between mb-4">
             <h1 class="text-white text-xl font-bold font-display tracking-tight">最新实时情报</h1>
             <div class="flex items-center gap-6 bg-[#181b21] px-4 py-2 rounded-lg border border-border-dark">

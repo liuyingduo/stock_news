@@ -197,3 +197,42 @@ backend/
 ## 详细文档
 
 更多爬虫和AI分析的详细用法，请参考 [spider/README.md](./spider/README.md)
+
+## AI Analysis Commands (Updated)
+
+Run from `backend/` directory.
+
+```bash
+# 1) Start API service
+uv run python -m app.main
+
+# 2) Batch analyze latest 7 days
+uv run python spider/analyze/analyze_events.py --days 7 --concurrency 10
+
+# 3) Batch analyze with explicit limit
+uv run python spider/analyze/analyze_events.py --limit 500 --concurrency 10
+
+# 4) Re-analyze existing AI results
+uv run python spider/analyze/analyze_events.py --limit 500 --force --concurrency 10
+
+# 5) Analyze by category
+uv run python spider/analyze/analyze_events.py --category policy --days 30 --concurrency 10
+```
+
+API-based analysis:
+
+```bash
+# Single event AI analysis
+curl -X POST "http://localhost:8000/api/events/{event_id}/analyze"
+
+# Batch AI analysis (new endpoint)
+curl -X POST "http://localhost:8000/api/events/analyze/batch?limit=200&days=7"
+```
+
+Radar result checks:
+
+```bash
+curl "http://localhost:8000/api/opportunity-radar/overview"
+curl "http://localhost:8000/api/opportunity-radar/signals?signal_type=opportunity&limit=10"
+curl "http://localhost:8000/api/opportunity-radar/top-events?limit=20"
+```

@@ -76,3 +76,17 @@ npm run build
 - `GET /api/sectors` - 获取板块列表
 - `GET /api/dashboard/stats` - 获取仪表板统计
 - `/static/pdfs/{filename}` - 查看PDF文件
+
+## Opportunity Radar Integration (Updated)
+
+The `OpportunityRadar` page now consumes backend APIs without changing the page style/layout:
+
+- `GET /api/opportunity-radar/overview`
+- `GET /api/opportunity-radar/signals?signal_type=opportunity`
+- `GET /api/opportunity-radar/signals?signal_type=risk`
+- `GET /api/opportunity-radar/top-events`
+
+Frontend files:
+
+- `src/api/opportunityRadar.ts`
+- `src/views/OpportunityRadar.vue` (script-only integration, template styles kept)

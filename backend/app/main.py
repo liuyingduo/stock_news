@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.core.database import connect_to_mongo, close_mongo_connection
-from app.routers import events, sectors, stocks, dashboard, auth, payments
+from app.routers import events, sectors, stocks, dashboard, auth, payments, opportunity_radar
 import uvicorn
 
 
@@ -39,6 +39,7 @@ app.include_router(sectors.router)
 app.include_router(stocks.router)
 app.include_router(dashboard.router)
 app.include_router(payments.router)
+app.include_router(opportunity_radar.router)
 
 @app.get("/")
 async def root():

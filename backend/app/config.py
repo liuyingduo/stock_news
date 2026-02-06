@@ -11,6 +11,7 @@ class Settings(BaseSettings):
 
     # Zhipu AI
     zhipu_api_key: str = ""
+    ai_model: str = "glm-4.7-flash"
 
     # API
     api_host: str = "0.0.0.0"

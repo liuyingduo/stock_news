@@ -99,7 +99,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { formatDate } from '../utils/date'
-import type { Event, EventType } from '../api/types'
+import type { Event } from '../api/types'
 import { 
   getCategoryLabel, 
   getCategoryClass, 
