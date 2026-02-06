@@ -24,6 +24,9 @@ class UserResponse(BaseModel):
     username: str = Field(..., description="用户名")
     email: str = Field(..., description="邮箱地址")
     phone: Optional[str] = Field(None, description="手机号码")
+    wechat_openid: Optional[str] = Field(None, description="微信 OpenID")
+    plan: str = Field(default="free", description="订阅计划")
+    plan_expires_at: Optional[datetime] = Field(None, description="订阅到期时间")
     created_at: datetime = Field(..., description="创建时间")
     is_active: bool = Field(default=True, description="是否激活")
 
@@ -39,8 +42,11 @@ class UserInDB(BaseModel):
     username: str
     email: str
     phone: Optional[str] = None
+    wechat_openid: Optional[str] = None
     hashed_password: str
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    plan: str = "free"
+    plan_expires_at: Optional[datetime] = None
     is_active: bool = True
 
 

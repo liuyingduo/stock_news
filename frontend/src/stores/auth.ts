@@ -4,7 +4,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { UserInfo } from '@/api/auth'
-import { getCurrentUser, login as loginApi, updateCurrentUser, type LoginData } from '@/api/auth'
+import { getCurrentUser, login as loginApi, loginBySms, updateCurrentUser, type LoginData } from '@/api/auth'
 
 const TOKEN_KEY = 'auth_token'
 
@@ -35,6 +35,22 @@ export const useAuthStore = defineStore('auth', () => {
         loading.value = true
         try {
             const response = await loginApi(data)
+            setToken(response.access_token)
+            await fetchUser()
+            return true
+        } catch (error) {
+            clearToken()
+            throw error
+        } finally {
+            loading.value = false
+        }
+    }
+
+    // 短信验证码登录
+    async function loginWithSms(phone: string, code: string) {
+        loading.value = true
+        try {
+            const response = await loginBySms(phone, code)
             setToken(response.access_token)
             await fetchUser()
             return true
@@ -97,6 +113,7 @@ export const useAuthStore = defineStore('auth', () => {
         isLoggedIn,
         username,
         login,
+        loginWithSms,
         logout,
         updateProfile,
         fetchUser,

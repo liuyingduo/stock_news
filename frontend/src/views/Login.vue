@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { ElMessage } from 'element-plus'
+import QRCode from 'qrcode'
+import { getWechatLoginUrl, sendSmsCode } from '@/api/auth'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 
 const loginType = ref<'email' | 'phone' | 'wechat'>('email')
@@ -14,6 +17,8 @@ const formPhone = ref('')
 const verificationCode = ref('')
 const countdown = ref(0)
 const loading = ref(false)
+const wechatQr = ref('')
+const wechatLoading = ref(false)
 
 const handleLogin = async () => {
   if (!email.value || !password.value) {
@@ -36,20 +41,24 @@ const handleLogin = async () => {
   }
 }
 
-const getVerificationCode = () => {
+const getVerificationCode = async () => {
   if (!formPhone.value) {
     ElMessage.warning('请输入手机号')
     return
   }
-  // 模拟发送由于后端暂无SMS服务
-  ElMessage.success('验证码已发送 (演示模式: 123456)')
-  countdown.value = 60
-  const timer = setInterval(() => {
-    countdown.value--
-    if (countdown.value <= 0) {
-      clearInterval(timer)
-    }
-  }, 1000)
+  try {
+    await sendSmsCode(formPhone.value)
+    ElMessage.success('验证码已发送')
+    countdown.value = 60
+    const timer = setInterval(() => {
+      countdown.value--
+      if (countdown.value <= 0) {
+        clearInterval(timer)
+      }
+    }, 1000)
+  } catch (error: any) {
+    ElMessage.error(error.response?.data?.detail || '验证码发送失败')
+  }
 }
 
 const handlePhoneLogin = async () => {
@@ -59,17 +68,47 @@ const handlePhoneLogin = async () => {
   }
   
   loading.value = true
-  // 模拟手机登录延迟
-  setTimeout(() => {
+  try {
+    await authStore.loginWithSms(formPhone.value, verificationCode.value)
+    ElMessage.success('登录成功')
+    router.push('/')
+  } catch (error: any) {
+    ElMessage.error(error.response?.data?.detail || '登录失败')
+  } finally {
     loading.value = false
-    if (verificationCode.value === '123456') {
-      ElMessage.success('登录成功 (演示)')
-      router.push('/')
-    } else {
-      ElMessage.error('验证码错误')
-    }
-  }, 1000)
+  }
 }
+
+const loadWechatQr = async () => {
+  wechatLoading.value = true
+  wechatQr.value = ''
+  try {
+    const { url } = await getWechatLoginUrl()
+    wechatQr.value = await QRCode.toDataURL(url, { width: 200, margin: 1 })
+  } catch (error: any) {
+    ElMessage.error(error.response?.data?.detail || '微信二维码获取失败')
+  } finally {
+    wechatLoading.value = false
+  }
+}
+
+watch(loginType, async (type) => {
+  if (type === 'wechat') {
+    await loadWechatQr()
+  }
+})
+
+onMounted(async () => {
+  const token = route.query.token as string | undefined
+  if (token) {
+    authStore.setToken(token)
+    await authStore.fetchUser()
+    router.replace('/')
+  }
+  if (loginType.value === 'wechat') {
+    await loadWechatQr()
+  }
+})
 </script>
 
 <template>
@@ -214,7 +253,9 @@ const handlePhoneLogin = async () => {
     <div v-if="loginType === 'wechat'" class="flex flex-col items-center justify-center py-6 min-h-[300px]">
       <div class="relative p-1 rounded-xl bg-gradient-to-br from-white/10 to-white/0 border border-logic-gold/30 shadow-2xl backdrop-blur-sm">
         <div class="bg-white p-3 rounded-lg overflow-hidden relative group cursor-pointer">
-          <img alt="Scan QR Code" class="w-48 h-48 opacity-95 block" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCo5KZghz7xv6yPyGHzZNZbC38m7QpLTlC7M5z7dolE828T7orIeyMUAgbmL-N5GLHGvZ7JSBahxLnFLddYi4DPyhoLGUjZsl65BLg4FExaiWay4Afz3FQPro5enes0UkgqFgmJ6MGkxBT_PeYa9lU5_ZaJ5TduQZbwD2wLiE9b0WRmiy7FTZWg1avGqvIj09HrTiT6V2pcDMZX7wJ2si3GxOW99ssun9N4eyrFyEQn4qtl-DblbSQ_CC-GoLIc0aLeuZy3TCf-ASoI" />
+          <div v-if="wechatLoading" class="w-48 h-48 flex items-center justify-center text-gray-500 text-sm">加载中...</div>
+          <img v-else-if="wechatQr" alt="Scan QR Code" class="w-48 h-48 opacity-95 block" :src="wechatQr" />
+          <div v-else class="w-48 h-48 flex items-center justify-center text-gray-500 text-sm">二维码加载失败</div>
           <!-- Scanning Line Animation -->
           <div class="absolute left-0 right-0 top-1/2 h-[2px] bg-logic-gold shadow-[0_0_15px_2px_rgba(212,175,55,0.8)] z-10 opacity-90 animate-pulse"></div>
           <div class="absolute inset-0 bg-gradient-to-b from-transparent via-logic-gold/10 to-transparent pointer-events-none"></div>

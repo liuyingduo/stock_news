@@ -21,6 +21,9 @@ export interface UserInfo {
   username: string
   email: string
   phone?: string
+  wechat_openid?: string
+  plan?: string
+  plan_expires_at?: string | null
   created_at: string
   is_active: boolean
 }
@@ -49,6 +52,27 @@ export const login = (data: LoginData): Promise<TokenResponse> => {
  */
 export const getCurrentUser = (): Promise<UserInfo> => {
   return api.get('/auth/me')
+}
+
+/**
+ * 发送短信验证码
+ */
+export const sendSmsCode = (phone: string) => {
+  return api.post('/auth/sms/send', { phone })
+}
+
+/**
+ * 短信验证码登录
+ */
+export const loginBySms = (phone: string, code: string): Promise<TokenResponse> => {
+  return api.post('/auth/sms/login', { phone, code })
+}
+
+/**
+ * 获取微信扫码登录地址
+ */
+export const getWechatLoginUrl = (): Promise<{ url: string }> => {
+  return api.get('/auth/wechat/login-url')
 }
 
 /**

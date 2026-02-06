@@ -1,6 +1,11 @@
 """认证路由 - 注册、登录、获取当前用户"""
 from datetime import datetime, timedelta
 from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi.responses import RedirectResponse
+from pydantic import BaseModel
+import secrets
+import httpx
+from urllib.parse import urlencode
 from app.core.database import get_database
 from app.models.user import UserCreate, UserLogin, UserResponse, UserUpdate, Token
 from app.services.auth import (
@@ -10,9 +15,23 @@ from app.services.auth import (
     get_current_user,
     get_user_by_email
 )
+from app.services.sms_service import send_sms_code, verify_sms_code, normalize_phone
 from app.config import settings
 
 router = APIRouter(prefix="/api/auth", tags=["认证"])
+
+
+class SmsSendRequest(BaseModel):
+    phone: str
+
+
+class SmsLoginRequest(BaseModel):
+    phone: str
+    code: str
+
+
+class WechatLoginUrlResponse(BaseModel):
+    url: str
 
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
@@ -54,6 +73,8 @@ async def register(user_data: UserCreate):
         "phone": user_data.phone,
         "hashed_password": hash_password(user_data.password),
         "created_at": datetime.utcnow(),
+        "plan": "free",
+        "plan_expires_at": None,
         "is_active": True
     }
     
@@ -64,6 +85,9 @@ async def register(user_data: UserCreate):
         username=user_doc["username"],
         email=user_doc["email"],
         phone=user_doc.get("phone"),
+        wechat_openid=user_doc.get("wechat_openid"),
+        plan=user_doc.get("plan", "free"),
+        plan_expires_at=user_doc.get("plan_expires_at"),
         created_at=user_doc["created_at"],
         is_active=user_doc["is_active"]
     )
@@ -104,6 +128,163 @@ async def login(user_data: UserLogin):
     )
     
     return Token(access_token=access_token, token_type="bearer")
+
+
+@router.post("/sms/send")
+async def send_sms(request: SmsSendRequest):
+    await send_sms_code(request.phone)
+    return {"message": "验证码已发送"}
+
+
+@router.post("/sms/login", response_model=Token)
+async def sms_login(request: SmsLoginRequest):
+    await verify_sms_code(request.phone, request.code)
+
+    db = get_database()
+    phone = normalize_phone(request.phone)
+    user = await db.users.find_one({"phone": phone})
+
+    if not user:
+        base_username = f"user_{phone[-4:]}"
+        username = base_username
+        exists = await db.users.find_one({"username": username})
+        if exists:
+            username = f"{base_username}_{secrets.randbelow(10000)}"
+
+        email = f"{phone}@sms.local"
+        user_doc = {
+            "username": username,
+            "email": email,
+            "phone": phone,
+            "hashed_password": hash_password(secrets.token_urlsafe(16)),
+            "created_at": datetime.utcnow(),
+            "plan": "free",
+            "plan_expires_at": None,
+            "is_active": True,
+        }
+        result = await db.users.insert_one(user_doc)
+        user = {**user_doc, "_id": result.inserted_id}
+
+    if not user.get("is_active", True):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="账户已被禁用")
+
+    access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
+    access_token = create_access_token(
+        data={"sub": user["email"]},
+        expires_delta=access_token_expires
+    )
+    return Token(access_token=access_token, token_type="bearer")
+
+
+@router.get("/wechat/login-url", response_model=WechatLoginUrlResponse)
+async def wechat_login_url():
+    if not all([
+        settings.wechat_open_appid,
+        settings.wechat_open_redirect_uri,
+    ]):
+        raise HTTPException(status_code=500, detail="微信登录配置缺失")
+
+    state = secrets.token_urlsafe(16)
+    db = get_database()
+    await db.wechat_login_states.insert_one({
+        "state": state,
+        "created_at": datetime.utcnow(),
+        "used": False,
+    })
+
+    params = {
+        "appid": settings.wechat_open_appid,
+        "redirect_uri": settings.wechat_open_redirect_uri,
+        "response_type": "code",
+        "scope": "snsapi_login",
+        "state": state,
+    }
+    url = f"https://open.weixin.qq.com/connect/qrconnect?{urlencode(params)}#wechat_redirect"
+    return WechatLoginUrlResponse(url=url)
+
+
+@router.get("/wechat/callback")
+async def wechat_callback(code: str, state: str):
+    if not all([
+        settings.wechat_open_appid,
+        settings.wechat_open_secret,
+        settings.wechat_open_redirect_uri,
+        settings.frontend_base_url,
+    ]):
+        raise HTTPException(status_code=500, detail="微信登录配置缺失")
+
+    db = get_database()
+    record = await db.wechat_login_states.find_one({"state": state})
+    if not record or record.get("used"):
+        raise HTTPException(status_code=400, detail="无效的登录请求")
+
+    await db.wechat_login_states.update_one({"_id": record["_id"]}, {"$set": {"used": True}})
+
+    async with httpx.AsyncClient(timeout=10) as client:
+        token_resp = await client.get(
+            "https://api.weixin.qq.com/sns/oauth2/access_token",
+            params={
+                "appid": settings.wechat_open_appid,
+                "secret": settings.wechat_open_secret,
+                "code": code,
+                "grant_type": "authorization_code",
+            },
+        )
+
+    token_data = token_resp.json()
+    access_token = token_data.get("access_token")
+    openid = token_data.get("openid")
+
+    if not access_token or not openid:
+        raise HTTPException(status_code=400, detail="微信授权失败")
+
+    async with httpx.AsyncClient(timeout=10) as client:
+        userinfo_resp = await client.get(
+            "https://api.weixin.qq.com/sns/userinfo",
+            params={
+                "access_token": access_token,
+                "openid": openid,
+                "lang": "zh_CN",
+            },
+        )
+
+    userinfo = userinfo_resp.json()
+    nickname = userinfo.get("nickname") or "微信用户"
+
+    user = await db.users.find_one({"wechat_openid": openid})
+    if not user:
+        base_username = nickname.replace(" ", "")[:20] or "wx_user"
+        username = base_username
+        exists = await db.users.find_one({"username": username})
+        if exists:
+            username = f"{base_username}_{secrets.randbelow(10000)}"
+
+        email = f"wx_{openid}@wechat.local"
+        user_doc = {
+            "username": username,
+            "email": email,
+            "phone": None,
+            "wechat_openid": openid,
+            "hashed_password": hash_password(secrets.token_urlsafe(16)),
+            "created_at": datetime.utcnow(),
+            "plan": "free",
+            "plan_expires_at": None,
+            "is_active": True,
+        }
+        result = await db.users.insert_one(user_doc)
+        user = {**user_doc, "_id": result.inserted_id}
+
+    if not user.get("is_active", True):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="账户已被禁用")
+
+    access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
+    jwt_token = create_access_token(
+        data={"sub": user["email"]},
+        expires_delta=access_token_expires,
+    )
+
+    redirect_url = f"{settings.frontend_base_url}/login?token={jwt_token}"
+    return RedirectResponse(url=redirect_url)
 
 
 @router.get("/me", response_model=UserResponse)
@@ -155,6 +336,9 @@ async def update_me(
         username=user["username"],
         email=user["email"],
         phone=user.get("phone"),
+        wechat_openid=user.get("wechat_openid"),
+        plan=user.get("plan", "free"),
+        plan_expires_at=user.get("plan_expires_at"),
         created_at=user["created_at"],
         is_active=user.get("is_active", True)
     )

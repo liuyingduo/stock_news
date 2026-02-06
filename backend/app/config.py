@@ -25,6 +25,36 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60 * 24 * 7  # 7 days
 
+    # WeChat Pay v3
+    wechat_mchid: str = ""
+    wechat_appid: str = ""
+    wechat_serial_no: str = ""
+    wechat_private_key_path: str = ""
+    wechat_api_v3_key: str = ""
+    wechat_notify_url: str = ""
+
+    # Alipay
+    alipay_app_id: str = ""
+    alipay_private_key_path: str = ""
+    alipay_public_key_path: str = ""
+    alipay_notify_url: str = ""
+
+    # WeChat Open Platform (QR Login)
+    wechat_open_appid: str = ""
+    wechat_open_secret: str = ""
+    wechat_open_redirect_uri: str = ""
+
+    # Tencent SMS
+    tencent_sms_secret_id: str = ""
+    tencent_sms_secret_key: str = ""
+    tencent_sms_app_id: str = ""
+    tencent_sms_sign_name: str = ""
+    tencent_sms_template_id: str = ""
+    tencent_sms_country_code: str = "+86"
+
+    # Frontend
+    frontend_base_url: str = ""
+
     class Config:
         env_file = ".env"
         case_sensitive = False

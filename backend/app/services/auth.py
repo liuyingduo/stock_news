@@ -78,6 +78,9 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> Optional[User
         username=user["username"],
         email=user["email"],
         phone=user.get("phone"),
+        wechat_openid=user.get("wechat_openid"),
+        plan=user.get("plan", "free"),
+        plan_expires_at=user.get("plan_expires_at"),
         created_at=user["created_at"],
         is_active=user.get("is_active", True)
     )
