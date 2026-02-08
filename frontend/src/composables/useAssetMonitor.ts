@@ -209,6 +209,12 @@ export function useAssetMonitor() {
     return stocks.map((item) => mapStock(item)).filter((item): item is WatchItem => Boolean(item))
   }
 
+  function emitWatchlistUpdated() {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('watchlist-updated'))
+    }
+  }
+
   function applyWatchlist(nextWatchlist: WatchItem[]) {
     watchlist.value = nextWatchlist
     if (!nextWatchlist.some((item) => item.code === activeStockCode.value)) {
@@ -266,6 +272,7 @@ export function useAssetMonitor() {
 
     activeStockCode.value = candidate.code
     searchQuery.value = ''
+    emitWatchlistUpdated()
   }
 
   async function removeStock(code: string) {
@@ -279,6 +286,7 @@ export function useAssetMonitor() {
         activeStockCode.value = watchlist.value[0]?.code || ''
       }
     }
+    emitWatchlistUpdated()
   }
 
   async function addStockFromSearch() {

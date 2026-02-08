@@ -6,7 +6,7 @@
           <div class="flex h-8 w-8 items-center justify-center rounded-full bg-logic-gold/10 border border-logic-gold/30 shadow-glow-gold shrink-0">
             <span class="material-symbols-outlined text-logic-gold text-xl">language</span>
           </div>
-          <span class="hidden lg:block text-base font-bold tracking-tight text-white font-sans">涓囧彜缁忕含</span>
+          <span class="hidden lg:block text-base font-bold tracking-tight text-white font-sans">万古经纬</span>
         </div>
       </div>
       <div class="flex-1 overflow-y-auto py-6 px-2 lg:px-4 space-y-8">
@@ -14,13 +14,13 @@
           <button class="w-full flex items-center gap-3 px-3 py-3 rounded-lg bg-surface-lighter text-logic-gold border border-logic-gold/30 shadow-[0_0_15px_rgba(212,175,55,0.1)] transition-all group relative overflow-hidden hover:bg-surface-lighter/80">
             <div class="absolute left-0 top-0 bottom-0 w-1 bg-logic-gold"></div>
             <span class="material-symbols-outlined shrink-0">restart_alt</span>
-            <span class="hidden lg:block text-sm font-bold">榛樿 (鍏ㄩ儴浜嬩欢)</span>
+            <span class="hidden lg:block text-sm font-bold">默认 (全部事件)</span>
           </button>
         </div>
         <div class="space-y-3">
           <div class="hidden lg:flex px-3 items-center justify-between">
-            <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider font-mono">鎸囨暟鍊惧悜</h3>
-            <span class="text-[10px] text-gray-600 bg-white/5 px-1.5 py-0.5 rounded">鍗曢€変簰鏂</span>
+            <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider font-mono">指数倾向</h3>
+            <span class="text-[10px] text-gray-600 bg-white/5 px-1.5 py-0.5 rounded">单选互斥</span>
           </div>
           <div class="space-y-1">
             <button
@@ -29,7 +29,7 @@
               @click="setDirectionFilter('all')"
             >
               <span class="material-symbols-outlined text-[20px] shrink-0">all_inclusive</span>
-              <span class="hidden lg:block text-sm">鍏ㄩ儴淇″彿</span>
+              <span class="hidden lg:block text-sm">全部信号</span>
             </button>
             <label class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-300 hover:bg-white/5 cursor-pointer group transition-colors">
               <input
@@ -39,7 +39,7 @@
                 @change="toggleDirectionFilter('opportunity')"
               />
               <span class="hidden lg:flex items-center text-sm group-hover:text-logic-gold transition-colors">
-                鎹曟崏鏈轰細
+                捕捉机会
                 <span class="text-xs text-market-up ml-2 font-mono font-bold bg-market-up/10 px-1 rounded">&gt;70</span>
               </span>
             </label>
@@ -51,7 +51,7 @@
                 @change="toggleDirectionFilter('risk')"
               />
               <span class="hidden lg:flex items-center text-sm group-hover:text-logic-gold transition-colors">
-                瑙勯伩椋庨櫓
+                规避风险
                 <span class="text-xs text-market-down ml-2 font-mono font-bold bg-market-down/10 px-1 rounded">&lt;70</span>
               </span>
             </label>
@@ -59,7 +59,7 @@
         </div>
         <div class="space-y-3 pt-6 border-t border-white/5">
           <div class="hidden lg:flex px-3 items-center justify-between">
-            <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider font-mono">鎯呮姤椴滃害</h3>
+            <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider font-mono">情报鲜度</h3>
           </div>
           <div class="space-y-1">
             <button
@@ -68,7 +68,7 @@
               @click="setFreshnessFilter('all')"
             >
               <span class="material-symbols-outlined text-[20px] shrink-0">all_inclusive</span>
-              <span class="hidden lg:block text-sm">鍏ㄩ儴淇″彿</span>
+              <span class="hidden lg:block text-sm">全部信号</span>
             </button>
             <label class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-300 hover:bg-white/5 cursor-pointer group transition-colors">
               <input
@@ -77,7 +77,7 @@
                 :checked="freshnessFilter === 'first'"
                 @change="toggleFreshnessFilter('first')"
               />
-              <span class="hidden lg:block text-sm group-hover:text-logic-gold transition-colors">棣栧彂鏂伴椈</span>
+              <span class="hidden lg:block text-sm group-hover:text-logic-gold transition-colors">首发新闻</span>
             </label>
             <label class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-300 hover:bg-white/5 cursor-pointer group transition-colors">
               <input
@@ -86,7 +86,7 @@
                 :checked="freshnessFilter === 'relay'"
                 @change="toggleFreshnessFilter('relay')"
               />
-              <span class="hidden lg:block text-sm group-hover:text-logic-gold transition-colors">閫昏緫鎺ュ姏</span>
+              <span class="hidden lg:block text-sm group-hover:text-logic-gold transition-colors">逻辑接力</span>
             </label>
           </div>
         </div>
@@ -108,7 +108,7 @@
                 <div>
                   <h2 class="text-base font-bold text-white flex items-center gap-2">
                     <span class="material-symbols-outlined text-logic-gold text-sm">network_node</span>
-                    甯傚満鍏堢敓鎸囨暟
+                    市场先生指数
                   </h2>
                   <p class="text-xs text-gray-500 mt-1 font-mono uppercase">Mr. Market Index</p>
                 </div>
@@ -174,9 +174,9 @@
               <div class="flex justify-between items-center mb-4 relative z-10">
                 <h3 class="text-sm font-bold text-market-up flex items-center gap-2">
                   <span class="w-1.5 h-1.5 rounded-full bg-market-up animate-[pulse_3s_infinite]"></span>
-                  鏈轰細鎻愮ず
+                  机会提示
                 </h3>
-                <span class="text-xs text-gray-500 font-mono">鍏?{{ opportunityCard.total }} 鏉′簨浠</span>
+                <span class="text-xs text-gray-500 font-mono">共 {{ opportunityCard.total }} 条事件</span>
               </div>
               <div class="flex-1 flex flex-col justify-center relative z-10">
                 <div class="bg-market-up/5 border border-market-up/10 rounded-lg p-3 group hover:bg-market-up/10 transition-colors cursor-pointer">
@@ -193,9 +193,9 @@
               <div class="flex justify-between items-center mb-4">
                 <h3 class="text-sm font-bold text-market-down flex items-center gap-2">
                   <span class="w-1.5 h-1.5 rounded-full bg-market-down animate-pulse"></span>
-                  椋庨櫓棰勮
+                  风险预警
                 </h3>
-                <span class="text-xs text-gray-500 font-mono">鍏?{{ riskCard.total }} 鏉′簨浠</span>
+                <span class="text-xs text-gray-500 font-mono">共 {{ riskCard.total }} 条事件</span>
               </div>
               <div class="flex-1 flex flex-col justify-center">
                 <div class="bg-market-down/5 border border-market-down/10 rounded-lg p-3 hover:bg-market-down/10 transition-colors cursor-pointer group">
@@ -210,7 +210,7 @@
           </div>
         </div>
 
-                <div ref="topEventsTableRef">
+        <div ref="topEventsTableRef">
           <RadarTopEventsTable
             :loading="loading"
             :top-event-rows="topEventRows"
@@ -220,9 +220,9 @@
             @toggle="onToggleTopEvents"
           />
         </div>
-<footer class="flex justify-between items-center text-[10px] text-gray-600 font-mono pt-4 pb-8 px-6 lg:px-0">
+        <footer class="flex justify-between items-center text-[10px] text-gray-600 font-mono pt-4 pb-8 px-6 lg:px-0">
           <div class="flex items-center gap-4">
-            <span>涓囧彜缁堢 User_01</span>
+            <span>万古终端 User_01</span>
             <span class="px-1.5 py-0.5 rounded bg-white/5 border border-white/5 text-[9px] text-logic-gold">PRO</span>
           </div>
           <div class="flex gap-4">
@@ -282,5 +282,3 @@ onMounted(async () => {
   }
 })
 </script>
-
-

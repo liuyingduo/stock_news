@@ -1,4 +1,4 @@
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+﻿import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import QRCode from 'qrcode'
 import { createPaymentOrder, getPaymentOrder, type PaymentChannel, type PaymentOrderResponse } from '@/api/payments'
 import { useAuthStore } from '@/stores/auth'
@@ -52,7 +52,7 @@ export function usePricingPayment() {
       currentOrder.value = order
       qrDataUrl.value = await QRCode.toDataURL(order.qr_code_url, { width: 200, margin: 1 })
       startPolling()
-    } catch (error) {
+    } catch (_error) {
       paymentStatus.value = 'failed'
     } finally {
       qrLoading.value = false

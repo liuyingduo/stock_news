@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <nav :class="variantClasses.container">
     <template v-for="item in navItems" :key="item.key">
       <RouterLink

@@ -6,10 +6,10 @@
       <div class="flex flex-wrap gap-0 divide-x divide-border-dark">
         <div class="flex items-center gap-4 px-6 py-3">
           <div>
-            <p class="text-gray-400 text-xs font-medium uppercase tracking-wider">鏈€杩?澶╀簨浠舵€婚噺</p>
+            <p class="text-gray-400 text-xs font-medium uppercase tracking-wider">最近7天事件总量</p>
             <div class="flex items-baseline gap-2">
               <p class="text-white text-xl font-bold font-mono tracking-tight">{{ stats.recent_events_7days.toLocaleString() }}</p>
-              <p class="text-signal-bullish text-xs font-bold font-mono text-glow-bullish">鎬婚噺 {{ stats.total_events.toLocaleString() }}</p>
+              <p class="text-signal-bullish text-xs font-bold font-mono text-glow-bullish">总量 {{ stats.total_events.toLocaleString() }}</p>
             </div>
           </div>
           <div class="h-8 w-16 bg-gradient-to-t from-signal-bullish/20 to-transparent flex items-end gap-0.5">
@@ -23,19 +23,19 @@
         </div>
         <div class="flex items-center gap-4 px-6 py-3">
           <div>
-            <p class="text-gray-400 text-xs font-medium uppercase tracking-wider">楂樼疆淇″害浜嬩欢</p>
+            <p class="text-gray-400 text-xs font-medium uppercase tracking-wider">高置信度事件</p>
             <div class="flex items-baseline gap-2">
               <p class="text-white text-xl font-bold font-mono tracking-tight">{{ highConfidenceCount.toLocaleString() }}</p>
-              <p class="text-signal-bullish text-xs font-bold font-mono text-glow-bullish">褰撳墠椤</p>
+              <p class="text-signal-bullish text-xs font-bold font-mono text-glow-bullish">当前页</p>
             </div>
           </div>
         </div>
         <div class="flex items-center gap-4 px-6 py-3">
           <div>
-            <p class="text-gray-400 text-xs font-medium uppercase tracking-wider">鐪嬪鎯呯华鍗犳瘮</p>
+            <p class="text-gray-400 text-xs font-medium uppercase tracking-wider">看多情绪占比</p>
             <div class="flex items-baseline gap-2">
               <p class="text-white text-xl font-bold font-mono tracking-tight">{{ bullishRatio }}</p>
-              <p class="text-signal-bearish text-xs font-bold font-mono text-glow-bearish">褰撳墠椤</p>
+              <p class="text-signal-bearish text-xs font-bold font-mono text-glow-bearish">当前页</p>
             </div>
           </div>
         </div>
@@ -47,7 +47,7 @@
         <div class="p-4 space-y-6">
           <div>
             <label class="flex flex-col w-full">
-              <span class="text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wide">鎼滅储鎯呮姤</span>
+              <span class="text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wide">搜索情报</span>
               <div class="flex w-full items-center rounded-lg h-10 bg-[#181b21] border border-border-dark focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all">
                 <div class="text-gray-400 flex items-center justify-center pl-3">
                   <span class="material-symbols-outlined text-[20px]">search</span>
@@ -55,19 +55,19 @@
                 <input
                   v-model="searchTerm"
                   class="w-full bg-transparent border-none text-white text-sm placeholder:text-gray-500 focus:ring-0 px-3 font-display"
-                  placeholder="浠ｇ爜銆佸叧閿瘝鎴栨潵婧?.."
+                  placeholder="代码、关键词或来源..."
                   @keyup.enter="applyFilters"
                 />
               </div>
             </label>
           </div>
           <div class="flex flex-col gap-1">
-            <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">浜嬩欢绫诲埆</span>
+            <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">事件类别</span>
             <button
               class="flex items-center justify-between px-3 py-2 rounded-md bg-[#181b21] border border-primary/20 text-primary font-medium text-sm transition-colors text-left w-full mb-1"
               @click="selectCategory('')"
             >
-              <span>鍏ㄩ儴浜嬩欢</span>
+              <span>全部事件</span>
               <span class="material-symbols-outlined text-[16px]">check</span>
             </button>
             <details v-for="group in categoryGroups" :key="group.key" class="group rounded-md" :open="activeCategory === group.key">
@@ -93,20 +93,20 @@
           </div>
           <div class="h-px bg-border-dark w-full"></div>
           <div class="flex flex-col gap-3">
-            <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide">绛涢€夊櫒</span>
+            <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide">筛选器</span>
             <details class="group rounded-lg border border-border-dark bg-[#0f1115] open">
               <summary class="flex cursor-pointer items-center justify-between gap-2 px-3 py-2.5 bg-[#181b21] hover:bg-[#22272e] transition-colors rounded-t-lg select-none">
                 <div class="flex items-center gap-2">
                   <span class="material-symbols-outlined text-gray-400 text-[18px]">calendar_today</span>
-                  <p class="text-white text-sm font-medium">鏃ユ湡鑼冨洿</p>
+                  <p class="text-white text-sm font-medium">日期范围</p>
                 </div>
                 <span class="material-symbols-outlined text-gray-400 group-open:rotate-180 transition-transform text-[20px]">expand_more</span>
               </summary>
               <div class="p-3 border-t border-border-dark">
                 <div class="flex flex-col gap-2">
                   <div class="flex gap-2 mt-2">
-                    <button class="flex-1 bg-border-dark hover:bg-[#3c4453] text-white text-xs py-1.5 rounded transition-colors" @click="setToday">浠婂ぉ</button>
-                    <button class="flex-1 bg-border-dark hover:bg-[#3c4453] text-white text-xs py-1.5 rounded transition-colors" @click="setLast7Days">杩囧幓7澶</button>
+                    <button class="flex-1 bg-border-dark hover:bg-[#3c4453] text-white text-xs py-1.5 rounded transition-colors" @click="setToday">今天</button>
+                    <button class="flex-1 bg-border-dark hover:bg-[#3c4453] text-white text-xs py-1.5 rounded transition-colors" @click="setLast7Days">过去7天</button>
                   </div>
                 </div>
               </div>
@@ -118,22 +118,22 @@
       <main ref="mainRef" class="flex-1 overflow-y-auto bg-background-dark p-6 custom-scrollbar">
         <div class="max-w-7xl mx-auto grid grid-cols-1 gap-5">
           <div class="col-span-full flex items-center justify-between mb-4">
-            <h1 class="text-white text-xl font-bold font-display tracking-tight">鏈€鏂板疄鏃舵儏鎶</h1>
+            <h1 class="text-white text-xl font-bold font-display tracking-tight">最新实时情报</h1>
             <div class="flex items-center gap-6 bg-[#181b21] px-4 py-2 rounded-lg border border-border-dark">
-              <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">鎺掑簭</span>
+              <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">排序</span>
               <button
                 class="flex items-center gap-1.5 text-sm font-medium group transition-all"
                 :class="sortKey === 'default' ? 'text-primary font-bold' : 'text-gray-400 hover:text-white'"
                 @click="setSort('default')"
               >
-                <span>榛樿</span>
+                <span>默认</span>
               </button>
               <button
                 class="flex items-center gap-1.5 text-sm font-medium group transition-all"
                 :class="sortKey === 'impact' ? 'text-primary font-bold' : 'text-gray-400 hover:text-white'"
                 @click="setSort('impact')"
               >
-                <span>褰卞搷鍔</span>
+                <span>影响力</span>
                 <div class="flex flex-col -space-y-1.5">
                   <span
                     class="material-symbols-outlined text-[16px] leading-none"
@@ -150,7 +150,7 @@
                 :class="sortKey === 'sentiment' ? 'text-primary font-bold' : 'text-gray-400 hover:text-white'"
                 @click="setSort('sentiment')"
               >
-                <span>澶氱┖淇″彿</span>
+                <span>多空信号</span>
                 <div class="flex flex-col -space-y-1.5">
                   <span
                     class="material-symbols-outlined text-[16px] leading-none"
@@ -167,7 +167,7 @@
                 :class="sortKey === 'confidence' ? 'text-primary font-bold' : 'text-gray-400 hover:text-white'"
                 @click="setSort('confidence')"
               >
-                <span>缃俊搴</span>
+                <span>置信度</span>
                 <div class="flex flex-col -space-y-1.5">
                   <span
                     class="material-symbols-outlined text-[16px] leading-none"
@@ -182,8 +182,8 @@
             </div>
           </div>
 
-          <div v-if="loading && events.length === 0" class="col-span-full py-10 text-center text-gray-500">鍔犺浇涓?..</div>
-          <div v-else-if="!loading && events.length === 0" class="col-span-full py-10 text-center text-gray-500">鏆傛棤浜嬩欢鏁版嵁</div>
+          <div v-if="loading && events.length === 0" class="col-span-full py-10 text-center text-gray-500">加载中...</div>
+          <div v-else-if="!loading && events.length === 0" class="col-span-full py-10 text-center text-gray-500">暂无事件数据</div>
           <article
             v-else
             v-for="event in sortedEvents"
@@ -208,7 +208,7 @@
                   </span>
                 </div>
                 <div class="flex items-center gap-2 text-xs text-gray-500 whitespace-nowrap font-mono">
-                  <span>{{ event.source || '鏉ユ簮鏈煡' }}</span>
+                  <span>{{ event.source || '来源未知' }}</span>
                   <span class="text-border-dark opacity-50">|</span>
                   <span>{{ formatDateTime(event.announcement_date) }}</span>
                 </div>
@@ -219,19 +219,19 @@
               </p>
               <div class="flex items-center justify-start gap-6 pt-3 border-t border-border-dark/50 mt-auto">
                 <div class="flex items-baseline gap-2">
-                  <span class="text-[11px] text-gray-500 font-medium uppercase tracking-wider">褰卞搷鍔</span>
+                  <span class="text-[11px] text-gray-500 font-medium uppercase tracking-wider">影响力</span>
                   <span class="text-lg font-bold text-white font-mono text-glow-gold">
                     {{ formatImpact(event.ai_analysis?.impact_score) }}
                   </span>
                 </div>
                 <div class="flex items-baseline gap-2">
-                  <span class="text-[11px] text-gray-500 font-medium uppercase tracking-wider">澶氱┖淇″彿</span>
+                  <span class="text-[11px] text-gray-500 font-medium uppercase tracking-wider">多空信号</span>
                   <span class="text-lg font-bold font-mono" :class="getSignalTextClass(event)">
                     {{ formatSignal(event.ai_analysis?.sentiment_score) }}
                   </span>
                 </div>
                 <div class="flex items-baseline gap-2">
-                  <span class="text-[11px] text-gray-500 font-medium uppercase tracking-wider">缃俊搴</span>
+                  <span class="text-[11px] text-gray-500 font-medium uppercase tracking-wider">置信度</span>
                   <span class="text-lg font-bold text-white font-mono">
                     {{ formatConfidence(event.ai_analysis?.confidence_score) }}
                   </span>
@@ -243,10 +243,10 @@
         <div class="h-12"></div>
         <div ref="loadMoreTrigger" class="h-4"></div>
         <div v-if="loading && events.length > 0" class="flex justify-center pb-10 text-gray-500 text-sm">
-          鍔犺浇涓?..
+          加载中...
         </div>
         <div v-else-if="!hasMore && events.length > 0" class="flex justify-center pb-10 text-gray-500 text-sm">
-          宸插姞杞藉叏閮ㄦ暟鎹?
+          已加载全部数据
         </div>
       </main>
     </div>
@@ -311,5 +311,6 @@ useIntersectionObserver(
   },
 )
 </script>
+
 
 

@@ -47,22 +47,38 @@
               </div>
 
               <div class="custom-scrollbar max-h-[400px] divide-y divide-white/5 overflow-y-auto">
-                <div
-                  v-for="item in notificationItems"
-                  :key="item.id"
-                  class="cursor-pointer p-4 transition-colors hover:bg-white/5"
-                >
-                  <div class="flex items-start gap-3">
-                    <div :class="dotClass(item.level)"></div>
-                    <div class="flex-1 space-y-1">
-                      <p class="text-xs leading-relaxed text-text-light" v-html="item.message"></p>
-                      <div class="flex items-center justify-between">
-                        <span class="text-[10px] text-text-sub">{{ item.tag }}</span>
-                        <span class="font-mono text-[10px] text-text-sub">{{ item.time }}</span>
+                <div v-if="loadingNotifications" class="p-4 text-xs text-text-sub">正在加载告警...</div>
+                <div v-else-if="notificationError" class="p-4 text-xs text-market-red">{{ notificationError }}</div>
+                <div v-else-if="notificationItems.length === 0" class="p-4 text-xs text-text-sub">
+                  监控股票暂无触发告警（阈值：市场先生指数 &lt; 30）
+                </div>
+                <template v-else>
+                  <div
+                    v-for="item in notificationItems"
+                    :key="item.id"
+                    class="cursor-pointer p-4 transition-colors hover:bg-white/5"
+                  >
+                    <div class="flex items-start gap-3">
+                      <div :class="dotClass(item.level)"></div>
+                      <div class="flex-1 space-y-1">
+                        <p class="text-xs leading-relaxed text-text-light">
+                          <span class="font-bold text-white">{{ item.stockName }}</span>
+                          <span class="font-mono text-text-sub">({{ item.displayCode }})</span>
+                          市场先生指数
+                          <span class="font-bold font-mono" :class="item.level === 'red' ? 'text-market-red' : 'text-yellow-500'">
+                            {{ item.marketIndex.toFixed(1) }}
+                          </span>
+                          低于阈值
+                          <span class="font-bold font-mono text-primary">{{ item.threshold.toFixed(1) }}</span>
+                        </p>
+                        <div class="flex items-center justify-between">
+                          <span class="text-[10px] text-text-sub">{{ item.tag }}</span>
+                          <span class="font-mono text-[10px] text-text-sub">{{ item.time }}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
+                </template>
               </div>
 
               <div class="border-t border-primary/10 bg-black/40 p-3 text-center backdrop-blur-sm">
@@ -115,13 +131,17 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import MainNav from '@/components/common/MainNav.vue'
 import { useRouter } from 'vue-router'
+import { getWatchlistAlerts, type WatchlistAlertItem } from '@/api/notifications'
 
 type Variant = 'dashboard' | 'compact' | 'pricing'
 type NotificationLevel = 'red' | 'yellow' | 'gold' | 'gray'
 
 interface NotificationItem {
   id: string
-  message: string
+  stockName: string
+  displayCode: string
+  marketIndex: number
+  threshold: number
   tag: string
   time: string
   level: NotificationLevel
@@ -135,52 +155,11 @@ const props = withDefaults(defineProps<{ variant?: Variant }>(), {
 const router = useRouter()
 const notificationRoot = ref<HTMLElement | null>(null)
 const notificationPanelVisible = ref(false)
+const loadingNotifications = ref(false)
+const notificationError = ref<string | null>(null)
+const pollTimer = ref<number | null>(null)
 
-const notificationItems = ref<NotificationItem[]>([
-  {
-    id: 'n1',
-    message:
-      '<span class="font-bold text-white">比亚迪</span> <span class="font-mono text-text-sub">(002594.SZ)</span> 市场先生指数单次变动 <span class="font-bold font-mono text-market-red">+22.5%</span> 触发阈值',
-    tag: '异动预警',
-    time: '2分钟前',
-    level: 'red',
-    unread: true,
-  },
-  {
-    id: 'n2',
-    message:
-      '<span class="font-bold text-white">宁德时代</span> <span class="font-mono text-text-sub">(300750.SZ)</span> 置信度由 <span class="font-mono text-white">92%</span> 降至 <span class="font-bold font-mono text-yellow-500">58%</span> 出现剧烈偏移',
-    tag: '逻辑警告',
-    time: '15分钟前',
-    level: 'yellow',
-    unread: true,
-  },
-  {
-    id: 'n3',
-    message: '<span class="font-bold text-white">碳酸锂</span> 叙事规模瞬时增长 <span class="font-bold font-mono text-market-red">320%</span>',
-    tag: '规模突增',
-    time: '42分钟前',
-    level: 'red',
-    unread: true,
-  },
-  {
-    id: 'n4',
-    message: '系统将于今晚 24:00 进行例行维护，预计耗时 15 分钟',
-    tag: '系统通知',
-    time: '1小时前',
-    level: 'gold',
-    unread: true,
-  },
-  {
-    id: 'n5',
-    message:
-      '<span class="font-bold text-white">中信证券</span> <span class="font-mono text-text-sub">(600030.SH)</span> 发布半年度业绩预告',
-    tag: '个股动态',
-    time: '2小时前',
-    level: 'gray',
-    unread: true,
-  },
-])
+const notificationItems = ref<NotificationItem[]>([])
 
 const variant = computed(() => props.variant)
 
@@ -227,6 +206,9 @@ function dotClass(level: NotificationLevel): string {
 
 function toggleNotificationPanel() {
   notificationPanelVisible.value = !notificationPanelVisible.value
+  if (notificationPanelVisible.value) {
+    void loadNotifications()
+  }
 }
 
 function closeNotificationPanel() {
@@ -246,14 +228,68 @@ function handleKeydown(event: KeyboardEvent) {
   }
 }
 
+function toRelativeTime(value: string | null | undefined): string {
+  if (!value) return '--'
+  const dt = new Date(value)
+  if (Number.isNaN(dt.getTime())) return '--'
+  const diff = Date.now() - dt.getTime()
+  if (diff < 60 * 1000) return '刚刚'
+  if (diff < 60 * 60 * 1000) return `${Math.floor(diff / (60 * 1000))}分钟前`
+  if (diff < 24 * 60 * 60 * 1000) return `${Math.floor(diff / (60 * 60 * 1000))}小时前`
+  return `${Math.floor(diff / (24 * 60 * 60 * 1000))}天前`
+}
+
+function toNotificationItem(item: WatchlistAlertItem): NotificationItem {
+  return {
+    id: item.id,
+    stockName: item.stock_name,
+    displayCode: item.display_code,
+    marketIndex: Number(item.market_index || 0),
+    threshold: Number(item.threshold || 30),
+    tag: item.tag || '市场先生预警',
+    time: toRelativeTime(item.triggered_at || item.latest_event_at),
+    level: item.level === 'red' ? 'red' : 'yellow',
+    unread: true,
+  }
+}
+
+async function loadNotifications() {
+  loadingNotifications.value = true
+  notificationError.value = null
+  try {
+    const response = await getWatchlistAlerts(30, 72)
+    notificationItems.value = (response.items || []).map((item) => toNotificationItem(item))
+  } catch (error) {
+    notificationItems.value = []
+    notificationError.value = '加载告警失败，请稍后重试'
+    console.error('加载消息通知失败:', error)
+  } finally {
+    loadingNotifications.value = false
+  }
+}
+
+function handleWatchlistUpdated() {
+  void loadNotifications()
+}
+
 onMounted(() => {
+  void loadNotifications()
   document.addEventListener('mousedown', handleDocumentClick)
   document.addEventListener('keydown', handleKeydown)
+  window.addEventListener('watchlist-updated', handleWatchlistUpdated)
+  pollTimer.value = window.setInterval(() => {
+    void loadNotifications()
+  }, 60 * 1000)
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('mousedown', handleDocumentClick)
   document.removeEventListener('keydown', handleKeydown)
+  window.removeEventListener('watchlist-updated', handleWatchlistUpdated)
+  if (pollTimer.value !== null) {
+    window.clearInterval(pollTimer.value)
+    pollTimer.value = null
+  }
 })
 
 const goToProfile = () => {

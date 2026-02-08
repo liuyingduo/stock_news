@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="bg-surface-dark border border-white/5 rounded-2xl overflow-hidden flex flex-col shadow-lg">
     <div class="p-5 border-b border-white/5 bg-surface-lighter/20 flex justify-between items-center">
       <div class="flex items-center gap-3">
@@ -6,7 +6,7 @@
           <span class="material-symbols-outlined text-logic-gold text-sm">view_list</span>
         </div>
         <h2 class="text-base font-bold text-white">博弈拐点 TOP 20</h2>
-        <span class="text-xs text-gray-500 bg-white/5 px-2 py-0.5 rounded-full border border-white/10">筛选: 逻辑相关性 &gt; 80%</span>
+        <span class="text-xs text-gray-500 bg-white/5 px-2 py-0.5 rounded-full border border-white/10">筛选：逻辑相关性 &gt; 80%</span>
       </div>
       <div class="flex gap-4 text-xs text-gray-500 font-mono">
         <span class="flex items-center gap-1"><span class="w-2 h-2 bg-market-up rounded-full"></span>多头信号</span>

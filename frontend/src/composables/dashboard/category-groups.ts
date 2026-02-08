@@ -1,4 +1,4 @@
-export interface CategoryType {
+﻿export interface CategoryType {
   key: string
   label: string
 }

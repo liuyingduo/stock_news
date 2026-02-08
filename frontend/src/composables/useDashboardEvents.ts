@@ -1,4 +1,4 @@
-import { computed, ref } from 'vue'
+﻿import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { getEvents } from '@/api/events'
 import { getDashboardStats } from '@/api/dashboard'
@@ -259,3 +259,4 @@ export function useDashboardEvents() {
     init,
   }
 }
+
