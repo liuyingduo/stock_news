@@ -325,6 +325,45 @@ class DatabaseService:
             return self._convert_objectid_to_str(stock)
         return None
 
+    async def replace_all_stocks(self, stocks_data: List[Dict[str, Any]]) -> Dict[str, int]:
+        """
+        清空历史股票主数据后，写入最新全量数据。
+
+        Returns:
+            {"deleted": x, "inserted": y}
+        """
+        stocks_collection = self._get_db().stocks
+        delete_result = await stocks_collection.delete_many({})
+
+        if not stocks_data:
+            return {"deleted": delete_result.deleted_count, "inserted": 0}
+
+        now = datetime.utcnow()
+        deduped_by_code: Dict[str, Dict[str, Any]] = {}
+
+        for item in stocks_data:
+            code = str(item.get("code", "")).strip()
+            name = str(item.get("name", "")).strip()
+            if not code or not name:
+                continue
+
+            deduped_by_code[code] = {
+                "name": name,
+                "code": code,
+                "status": item.get("status", "normal"),
+                "industry": item.get("industry"),
+                "related_event_ids": item.get("related_event_ids", []),
+                "created_at": now,
+                "updated_at": now,
+            }
+
+        documents = list(deduped_by_code.values())
+        if not documents:
+            return {"deleted": delete_result.deleted_count, "inserted": 0}
+
+        result = await stocks_collection.insert_many(documents, ordered=False)
+        return {"deleted": delete_result.deleted_count, "inserted": len(result.inserted_ids)}
+
     # ===== 统计相关操作 =====
 
     async def get_dashboard_stats(self) -> Dict[str, Any]:

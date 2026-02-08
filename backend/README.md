@@ -87,6 +87,15 @@ API 文档：`http://localhost:8000/docs`
 uv run python spider/update/update_events.py
 ```
 
+> 启动 `update_events.py` 时，会先自动执行一次股票主数据同步：
+> 清空 `stocks` 集合历史数据，再从 AkShare 全量写入最新股票名称与代码。
+
+如需单独手动同步股票主数据，可执行：
+
+```bash
+uv run python spider/update/sync_stock_master.py
+```
+
 ### AI 分析
 
 分析脚本会自动进行分类和分析（一次调用完成）：

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="bg-background-dark text-gray-300 font-sans h-screen w-full overflow-hidden flex antialiased selection:bg-logic-gold selection:text-black">
     <aside class="w-16 lg:w-64 border-r border-white/5 bg-[#0b0e12] flex flex-col shrink-0 z-50">
       <div class="h-16 flex items-center justify-center lg:justify-start lg:px-6 border-b border-white/5 shrink-0">
@@ -6,7 +6,7 @@
           <div class="flex h-8 w-8 items-center justify-center rounded-full bg-logic-gold/10 border border-logic-gold/30 shadow-glow-gold shrink-0">
             <span class="material-symbols-outlined text-logic-gold text-xl">language</span>
           </div>
-          <span class="hidden lg:block text-base font-bold tracking-tight text-white font-sans">万古经纬</span>
+          <span class="hidden lg:block text-base font-bold tracking-tight text-white font-sans">涓囧彜缁忕含</span>
         </div>
       </div>
       <div class="flex-1 overflow-y-auto py-6 px-2 lg:px-4 space-y-8">
@@ -14,13 +14,13 @@
           <button class="w-full flex items-center gap-3 px-3 py-3 rounded-lg bg-surface-lighter text-logic-gold border border-logic-gold/30 shadow-[0_0_15px_rgba(212,175,55,0.1)] transition-all group relative overflow-hidden hover:bg-surface-lighter/80">
             <div class="absolute left-0 top-0 bottom-0 w-1 bg-logic-gold"></div>
             <span class="material-symbols-outlined shrink-0">restart_alt</span>
-            <span class="hidden lg:block text-sm font-bold">默认 (全部事件)</span>
+            <span class="hidden lg:block text-sm font-bold">榛樿 (鍏ㄩ儴浜嬩欢)</span>
           </button>
         </div>
         <div class="space-y-3">
           <div class="hidden lg:flex px-3 items-center justify-between">
-            <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider font-mono">指数倾向</h3>
-            <span class="text-[10px] text-gray-600 bg-white/5 px-1.5 py-0.5 rounded">单选互斥</span>
+            <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider font-mono">鎸囨暟鍊惧悜</h3>
+            <span class="text-[10px] text-gray-600 bg-white/5 px-1.5 py-0.5 rounded">鍗曢€変簰鏂</span>
           </div>
           <div class="space-y-1">
             <button
@@ -29,7 +29,7 @@
               @click="setDirectionFilter('all')"
             >
               <span class="material-symbols-outlined text-[20px] shrink-0">all_inclusive</span>
-              <span class="hidden lg:block text-sm">全部信号</span>
+              <span class="hidden lg:block text-sm">鍏ㄩ儴淇″彿</span>
             </button>
             <label class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-300 hover:bg-white/5 cursor-pointer group transition-colors">
               <input
@@ -39,7 +39,7 @@
                 @change="toggleDirectionFilter('opportunity')"
               />
               <span class="hidden lg:flex items-center text-sm group-hover:text-logic-gold transition-colors">
-                捕捉机会
+                鎹曟崏鏈轰細
                 <span class="text-xs text-market-up ml-2 font-mono font-bold bg-market-up/10 px-1 rounded">&gt;70</span>
               </span>
             </label>
@@ -51,7 +51,7 @@
                 @change="toggleDirectionFilter('risk')"
               />
               <span class="hidden lg:flex items-center text-sm group-hover:text-logic-gold transition-colors">
-                规避风险
+                瑙勯伩椋庨櫓
                 <span class="text-xs text-market-down ml-2 font-mono font-bold bg-market-down/10 px-1 rounded">&lt;70</span>
               </span>
             </label>
@@ -59,7 +59,7 @@
         </div>
         <div class="space-y-3 pt-6 border-t border-white/5">
           <div class="hidden lg:flex px-3 items-center justify-between">
-            <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider font-mono">情报鲜度</h3>
+            <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider font-mono">鎯呮姤椴滃害</h3>
           </div>
           <div class="space-y-1">
             <button
@@ -68,7 +68,7 @@
               @click="setFreshnessFilter('all')"
             >
               <span class="material-symbols-outlined text-[20px] shrink-0">all_inclusive</span>
-              <span class="hidden lg:block text-sm">全部信号</span>
+              <span class="hidden lg:block text-sm">鍏ㄩ儴淇″彿</span>
             </button>
             <label class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-300 hover:bg-white/5 cursor-pointer group transition-colors">
               <input
@@ -77,7 +77,7 @@
                 :checked="freshnessFilter === 'first'"
                 @change="toggleFreshnessFilter('first')"
               />
-              <span class="hidden lg:block text-sm group-hover:text-logic-gold transition-colors">首发新闻</span>
+              <span class="hidden lg:block text-sm group-hover:text-logic-gold transition-colors">棣栧彂鏂伴椈</span>
             </label>
             <label class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-300 hover:bg-white/5 cursor-pointer group transition-colors">
               <input
@@ -86,7 +86,7 @@
                 :checked="freshnessFilter === 'relay'"
                 @change="toggleFreshnessFilter('relay')"
               />
-              <span class="hidden lg:block text-sm group-hover:text-logic-gold transition-colors">逻辑接力</span>
+              <span class="hidden lg:block text-sm group-hover:text-logic-gold transition-colors">閫昏緫鎺ュ姏</span>
             </label>
           </div>
         </div>
@@ -108,7 +108,7 @@
                 <div>
                   <h2 class="text-base font-bold text-white flex items-center gap-2">
                     <span class="material-symbols-outlined text-logic-gold text-sm">network_node</span>
-                    市场先生指数
+                    甯傚満鍏堢敓鎸囨暟
                   </h2>
                   <p class="text-xs text-gray-500 mt-1 font-mono uppercase">Mr. Market Index</p>
                 </div>
@@ -174,9 +174,9 @@
               <div class="flex justify-between items-center mb-4 relative z-10">
                 <h3 class="text-sm font-bold text-market-up flex items-center gap-2">
                   <span class="w-1.5 h-1.5 rounded-full bg-market-up animate-[pulse_3s_infinite]"></span>
-                  机会提示
+                  鏈轰細鎻愮ず
                 </h3>
-                <span class="text-xs text-gray-500 font-mono">共 {{ opportunityCard.total }} 条事件</span>
+                <span class="text-xs text-gray-500 font-mono">鍏?{{ opportunityCard.total }} 鏉′簨浠</span>
               </div>
               <div class="flex-1 flex flex-col justify-center relative z-10">
                 <div class="bg-market-up/5 border border-market-up/10 rounded-lg p-3 group hover:bg-market-up/10 transition-colors cursor-pointer">
@@ -193,9 +193,9 @@
               <div class="flex justify-between items-center mb-4">
                 <h3 class="text-sm font-bold text-market-down flex items-center gap-2">
                   <span class="w-1.5 h-1.5 rounded-full bg-market-down animate-pulse"></span>
-                  风险预警
+                  椋庨櫓棰勮
                 </h3>
-                <span class="text-xs text-gray-500 font-mono">共 {{ riskCard.total }} 条事件</span>
+                <span class="text-xs text-gray-500 font-mono">鍏?{{ riskCard.total }} 鏉′簨浠</span>
               </div>
               <div class="flex-1 flex flex-col justify-center">
                 <div class="bg-market-down/5 border border-market-down/10 rounded-lg p-3 hover:bg-market-down/10 transition-colors cursor-pointer group">
@@ -210,84 +210,19 @@
           </div>
         </div>
 
-        <div class="bg-surface-dark border border-white/5 rounded-2xl overflow-hidden flex flex-col shadow-lg">
-          <div class="p-5 border-b border-white/5 bg-surface-lighter/20 flex justify-between items-center">
-            <div class="flex items-center gap-3">
-              <div class="p-1.5 rounded bg-logic-gold/10 border border-logic-gold/20">
-                <span class="material-symbols-outlined text-logic-gold text-sm">view_list</span>
-              </div>
-              <h2 class="text-base font-bold text-white">博弈极点 TOP 20</h2>
-              <span class="text-xs text-gray-500 bg-white/5 px-2 py-0.5 rounded-full border border-white/10">筛选: 逻辑相关性 &gt; 80%</span>
-            </div>
-            <div class="flex gap-4 text-xs text-gray-500 font-mono">
-              <span class="flex items-center gap-1"><span class="w-2 h-2 bg-market-up rounded-full"></span>多头信号</span>
-              <span class="flex items-center gap-1"><span class="w-2 h-2 bg-market-down rounded-full"></span>空头信号</span>
-              <span class="flex items-center gap-1"><span class="w-2 h-2 bg-logic-gold rounded-full"></span>关键转折</span>
-            </div>
-          </div>
-          <div class="grid grid-cols-12 px-6 py-3 border-b border-white/5 bg-black/20 text-xs font-medium text-gray-500 uppercase tracking-wider">
-            <div class="col-span-1"></div>
-            <div class="col-span-4 text-left">事件</div>
-            <div class="col-span-2 text-center">事件类型</div>
-            <div class="col-span-2 text-right">指数</div>
-            <div class="col-span-3 text-right pr-20">影响标的</div>
-          </div>
-          <div ref="topEventsTableRef" class="divide-y divide-white/5">
-            <div v-if="topEventRows.length === 0" class="py-12 text-center text-sm text-gray-500">
-              暂无可展示事件
-            </div>
-
-            <div v-for="(row, index) in topEventRows" :key="row.event.id || row.rank" :class="index === 0 ? 'bg-white/[0.02]' : ''">
-              <div class="grid grid-cols-12 px-6 py-4 items-center hover:bg-white/5 transition-colors cursor-pointer group">
-                <div class="col-span-1 font-mono font-bold text-lg" :class="index === 0 ? 'text-logic-gold' : 'text-gray-500'">{{ row.rank }}</div>
-                <div class="col-span-4">
-                  <h3 class="text-sm font-bold transition-colors" :class="index === 0 ? 'text-white group-hover:text-logic-gold' : 'text-gray-300 group-hover:text-white'">{{ row.title }}</h3>
-                  <p class="text-xs mt-0.5 font-light" :class="index === 0 ? 'text-gray-500' : 'text-gray-600'">{{ row.summary }}</p>
-                </div>
-                <div class="col-span-2">
-                  <span class="inline-flex items-center rounded-full bg-blue-400/10 px-2 py-1 text-xs font-medium text-blue-400 ring-1 ring-inset ring-blue-400/20">{{ row.typeLabel }}</span>
-                </div>
-                <div class="col-span-2 text-right">
-                  <span class="text-sm font-mono font-bold" :class="row.scorePositive ? 'text-market-up' : 'text-market-down'">{{ row.scoreText }}</span>
-                </div>
-                <div class="col-span-3 flex justify-end gap-2">
-                  <span v-for="(tag, tagIndex) in row.tags" :key="`${row.rank}-${tagIndex}`" class="inline-flex items-center rounded bg-surface-lighter px-2 py-1 text-xs font-medium text-gray-300 font-mono border border-white/10">{{ tag }}</span>
-                  <span class="material-symbols-outlined text-gray-600 text-sm" :class="index === 0 ? 'rotate-180' : ''">{{ index === 0 ? 'expand_less' : 'expand_more' }}</span>
-                </div>
-              </div>
-
-              <div v-if="index === 0" class="px-6 pb-6 pt-2 border-l-2 border-logic-gold ml-6 mb-2 bg-black/20 rounded-r-lg">
-                <div class="grid grid-cols-3 gap-6">
-                  <div class="col-span-2">
-                    <h4 class="text-xs font-bold text-gray-400 mb-3 uppercase tracking-wider">新闻聚合 (News Aggregation)</h4>
-                    <ul class="space-y-2">
-                      <li v-for="(line, lineIndex) in topEventDetail.newsLines" :key="`line-${lineIndex}`" class="flex gap-3 text-xs text-gray-300">
-                        <span class="text-gray-600 font-mono shrink-0">{{ line.time }}</span>
-                        <span class="line-clamp-1 hover:text-white cursor-pointer">{{ line.text }}</span>
-                      </li>
-                    </ul>
-                  </div>
-                  <div class="col-span-1 border-l border-white/5 pl-6">
-                    <h4 class="text-xs font-bold text-gray-400 mb-3 uppercase tracking-wider">AI 逻辑推演</h4>
-                    <p class="text-xs text-gray-400 leading-relaxed">
-                      {{ topEventDetail.reason }}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="px-6 py-4 border-t border-white/5 bg-black/10 flex justify-center">
-            <button class="text-xs text-gray-500 hover:text-logic-gold transition-colors flex items-center gap-1" :disabled="loading" @click="onToggleTopEvents">
-              {{ topEventsButtonText }}
-              <span class="material-symbols-outlined text-sm">{{ topEventsExpanded ? 'arrow_upward' : 'arrow_downward' }}</span>
-            </button>
-          </div>
+                <div ref="topEventsTableRef">
+          <RadarTopEventsTable
+            :loading="loading"
+            :top-event-rows="topEventRows"
+            :top-event-detail="topEventDetail"
+            :top-events-button-text="topEventsButtonText"
+            :top-events-expanded="topEventsExpanded"
+            @toggle="onToggleTopEvents"
+          />
         </div>
-
-        <footer class="flex justify-between items-center text-[10px] text-gray-600 font-mono pt-4 pb-8 px-6 lg:px-0">
+<footer class="flex justify-between items-center text-[10px] text-gray-600 font-mono pt-4 pb-8 px-6 lg:px-0">
           <div class="flex items-center gap-4">
-            <span>万古终端 User_01</span>
+            <span>涓囧彜缁堢 User_01</span>
             <span class="px-1.5 py-0.5 rounded bg-white/5 border border-white/5 text-[9px] text-logic-gold">PRO</span>
           </div>
           <div class="flex gap-4">
@@ -303,6 +238,7 @@
 <script setup lang="ts">
 import { nextTick, onMounted, ref } from 'vue'
 import AppHeader from '@/components/common/AppHeader.vue'
+import RadarTopEventsTable from '@/components/opportunity-radar/RadarTopEventsTable.vue'
 import { useOpportunityRadar } from '@/composables/useOpportunityRadar'
 
 const topEventsTableRef = ref<HTMLElement | null>(null)
@@ -346,3 +282,5 @@ onMounted(async () => {
   }
 })
 </script>
+
+

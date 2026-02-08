@@ -9,6 +9,18 @@ export const getStockByCode = (code: string) => {
   return api.get<Stock>(`/stocks/${code}`)
 }
 
+export const getMyWatchlist = () => {
+  return api.get<Stock[]>('/stocks/watchlist')
+}
+
+export const addStockToMyWatchlist = (code: string) => {
+  return api.post<Stock[]>('/stocks/watchlist', { code })
+}
+
+export const removeStockFromMyWatchlist = (code: string) => {
+  return api.delete<Stock[]>(`/stocks/watchlist/${code}`)
+}
+
 export const createStock = (data: Partial<Stock>) => {
   return api.post<Stock>('/stocks', data)
 }

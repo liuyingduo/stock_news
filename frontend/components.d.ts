@@ -8,6 +8,11 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AppHeader: typeof import('./src/components/common/AppHeader.vue')['default']
+    AssetMonitorInsightList: typeof import('./src/components/asset-monitor/AssetMonitorInsightList.vue')['default']
+    AssetMonitorRelationGraph: typeof import('./src/components/asset-monitor/AssetMonitorRelationGraph.vue')['default']
+    AssetMonitorRightPanel: typeof import('./src/components/asset-monitor/AssetMonitorRightPanel.vue')['default']
+    AssetMonitorSidebar: typeof import('./src/components/asset-monitor/AssetMonitorSidebar.vue')['default']
+    AssetMonitorTopPanel: typeof import('./src/components/asset-monitor/AssetMonitorTopPanel.vue')['default']
     CircularProgress: typeof import('./src/components/ecoSignal/CircularProgress.vue')['default']
     ElButton: typeof import('element-plus/es')['ElButton']
     ElEmpty: typeof import('element-plus/es')['ElEmpty']
@@ -15,6 +20,7 @@ declare module 'vue' {
     EventCard: typeof import('./src/components/EventCard.vue')['default']
     InfiniteScroll: typeof import('./src/components/common/InfiniteScroll.vue')['default']
     MainNav: typeof import('./src/components/common/MainNav.vue')['default']
+    RadarTopEventsTable: typeof import('./src/components/opportunity-radar/RadarTopEventsTable.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     SentimentGauge: typeof import('./src/components/ecoSignal/SentimentGauge.vue')['default']

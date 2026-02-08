@@ -1,10 +1,10 @@
-<template>
+﻿<template>
   <div
     class="signal-card"
     :class="{ 'compact': compact, 'expanded': expanded }"
     @click="toggleExpand"
   >
-    <!-- Header: 来源 + 类型标签 + 时间 -->
+    <!-- Header: 鏉ユ簮 + 绫诲瀷鏍囩 + 鏃堕棿 -->
     <div class="card-header">
       <div class="header-left">
         <span v-if="event.source" class="source-tag">
@@ -37,7 +37,7 @@
         class="score-badge"
         :class="getImpactClass(event.ai_analysis.impact_score)"
       >
-        <span class="score-label">影响</span>
+        <span class="score-label">褰卞搷</span>
         <span class="score-num">{{ (event.ai_analysis.impact_score * 10).toFixed(1) }}</span>
       </div>
 
@@ -47,7 +47,7 @@
         class="score-badge"
         :class="getSentimentClass(event.ai_analysis.sentiment_score)"
       >
-        <span class="score-label">多空</span>
+        <span class="score-label">澶氱┖</span>
         <span class="score-num">{{ event.ai_analysis.sentiment_score.toFixed(1) }}</span>
       </div>
     </div>
@@ -60,13 +60,13 @@
       effect="dark"
       size="small"
     >
-      ⚡ 情绪炒作
+      鈿?鎯呯华鐐掍綔
     </el-tag>
 
-    <!-- Entity Tags: 股票和板块 -->
+    <!-- Entity Tags: 鑲＄エ鍜屾澘鍧?-->
     <div v-if="hasEntities" class="entity-tags">
       <div v-if="hasStocks" class="entity-group">
-        <span class="entity-icon">📈</span>
+        <span class="entity-icon">馃搱</span>
         <el-tag
           v-for="stock in displayStocks"
           :key="stock.code"
@@ -81,7 +81,7 @@
         </span>
       </div>
       <div v-if="hasSectors" class="entity-group">
-        <span class="entity-icon">📊</span>
+        <span class="entity-icon">馃搳</span>
         <el-tag
           v-for="sector in displaySectors"
           :key="sector.code"
@@ -98,23 +98,23 @@
       </div>
     </div>
 
-    <!-- Impact Reason (展开显示) -->
+    <!-- Impact Reason (灞曞紑鏄剧ず) -->
     <div v-if="expanded && event.ai_analysis?.impact_reason" class="impact-reason">
-      <span class="reason-icon">💡</span>
+      <span class="reason-icon">馃挕</span>
       <div class="reason-content">
-        <div class="reason-label">影响分析</div>
+        <div class="reason-label">褰卞搷鍒嗘瀽</div>
         <p class="reason-text">{{ event.ai_analysis.impact_reason }}</p>
       </div>
     </div>
 
-    <!-- Entity Reasons (展开显示) -->
+    <!-- Entity Reasons (灞曞紑鏄剧ず) -->
     <div v-if="expanded && hasEntityReasons" class="entity-reasons">
       <div v-for="stock in stocksWithReason" :key="stock.code" class="entity-reason-item">
-        <span class="entity-name">📈 {{ stock.name }}</span>
+        <span class="entity-name">馃搱 {{ stock.name }}</span>
         <span class="entity-reason-text">{{ stock.reason }}</span>
       </div>
       <div v-for="sector in sectorsWithReason" :key="sector.code" class="entity-reason-item">
-        <span class="entity-name">📊 {{ sector.name }}</span>
+        <span class="entity-name">馃搳 {{ sector.name }}</span>
         <span class="entity-reason-text">{{ sector.reason }}</span>
       </div>
     </div>
@@ -128,21 +128,21 @@ import { formatDate } from '../../utils/date'
 import { formatSource, getTypeLabel, getTypeTagType } from '../../utils/format'
 import { getImpactClass, getSentimentClass } from '../../utils/score'
 
-// Props 定义
+// Props 瀹氫箟
 const props = defineProps<{
   event: Event
   compact?: boolean
 }>()
 
-// 展开状态
+// 灞曞紑鐘舵€?
 const expanded = ref(false)
 
-// 切换展开
+// 鍒囨崲灞曞紑
 const toggleExpand = () => {
   expanded.value = !expanded.value
 }
 
-// 规范化事件类型
+// 瑙勮寖鍖栦簨浠剁被鍨?
 const normalizedTypes = computed<EventType[]>(() => {
   const eventTypes = props.event.event_types
   if (!eventTypes) return []
@@ -150,7 +150,7 @@ const normalizedTypes = computed<EventType[]>(() => {
   return [eventTypes]
 })
 
-// 判断是否有实体
+// 鍒ゆ柇鏄惁鏈夊疄浣?
 const hasStocks = computed(() => {
   const stocks = props.event.ai_analysis?.affected_stocks
   return stocks !== undefined && stocks.length > 0
@@ -163,7 +163,7 @@ const hasSectors = computed(() => {
 
 const hasEntities = computed(() => hasStocks.value || hasSectors.value)
 
-// 显示的实体（限制数量）
+// 鏄剧ず鐨勫疄浣擄紙闄愬埗鏁伴噺锛?
 const displayStocks = computed(() => {
   const stocks = props.event.ai_analysis?.affected_stocks || []
   return props.compact ? stocks.slice(0, 2) : stocks.slice(0, 3)
@@ -188,7 +188,7 @@ const extraSectors = computed(() => {
   return Math.max(0, total - max)
 })
 
-// 判断是否有实体理由
+// 鍒ゆ柇鏄惁鏈夊疄浣撶悊鐢?
 const stocksWithReason = computed(() => {
   return (props.event.ai_analysis?.affected_stocks || []).filter(s => s.reason)
 })
@@ -202,215 +202,5 @@ const hasEntityReasons = computed(() => {
 })
 </script>
 
-<style scoped>
-.signal-card {
-  background: var(--signal-card-bg, rgba(30, 41, 59, 0.8));
-  border: 1px solid var(--signal-card-border, rgba(148, 163, 184, 0.1));
-  border-radius: 12px;
-  padding: 16px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
+<style scoped src="./SignalCard.css"></style>
 
-.signal-card:hover {
-  background: var(--signal-card-hover, rgba(51, 65, 85, 0.9));
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-.signal-card.compact {
-  padding: 12px;
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-  gap: 8px;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 1;
-  min-width: 0;
-}
-
-.source-tag {
-  font-size: 12px;
-  color: var(--text-secondary, #94a3b8);
-  white-space: nowrap;
-}
-
-.type-tags {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-}
-
-.header-right {
-  flex-shrink: 0;
-}
-
-.time-tag {
-  font-size: 11px;
-  color: var(--text-secondary, #94a3b8);
-}
-
-.card-title {
-  font-size: 15px;
-  font-weight: 500;
-  color: var(--text-primary, #f1f5f9);
-  margin: 0 0 12px 0;
-  line-height: 1.4;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.signal-card.compact .card-title {
-  font-size: 13px;
-  -webkit-line-clamp: 1;
-}
-
-.score-badges {
-  display: flex;
-  gap: 12px;
-  margin: 12px 0;
-}
-
-.score-badge {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(255, 255, 255, 0.05);
-  padding: 4px 10px;
-  border-radius: 6px;
-  border: 1px solid transparent;
-}
-
-.score-label {
-  font-size: 11px;
-  color: var(--text-secondary, #94a3b8);
-}
-
-.score-num {
-  font-size: 13px;
-  font-weight: 700;
-  font-family: monospace;
-}
-
-/* Impact Badge Colors */
-:deep(.impact-high) { border-color: #ef4444; background: rgba(239, 68, 68, 0.1); }
-:deep(.impact-high .score-num) { color: #ef4444; }
-
-:deep(.impact-medium) { border-color: #f59e0b; background: rgba(245, 158, 11, 0.1); }
-:deep(.impact-medium .score-num) { color: #f59e0b; }
-
-:deep(.impact-low) { border-color: #94a3b8; }
-:deep(.impact-low .score-num) { color: #94a3b8; }
-
-/* Sentiment Badge Colors */
-:deep(.sentiment-positive) { border-color: #22c55e; background: rgba(34, 197, 94, 0.1); }
-:deep(.sentiment-positive .score-num) { color: #22c55e; }
-
-:deep(.sentiment-negative) { border-color: #ef4444; background: rgba(239, 68, 68, 0.1); }
-:deep(.sentiment-negative .score-num) { color: #ef4444; }
-
-:deep(.sentiment-neutral) { border-color: #94a3b8; }
-:deep(.sentiment-neutral .score-num) { color: #94a3b8; }
-
-.hype-tag {
-  margin: 8px 0;
-  width: fit-content;
-}
-
-.entity-tags {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.entity-group {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.entity-icon {
-  font-size: 14px;
-}
-
-.entity-tag {
-  font-size: 11px;
-}
-
-.more-tag {
-  font-size: 11px;
-  color: var(--text-secondary, #94a3b8);
-  margin-left: 4px;
-}
-
-.impact-reason {
-  display: flex;
-  gap: 8px;
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border-primary, rgba(148, 163, 184, 0.1));
-}
-
-.reason-icon {
-  font-size: 16px;
-  flex-shrink: 0;
-}
-
-.reason-content {
-  flex: 1;
-}
-
-.reason-label {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-secondary, #94a3b8);
-  margin-bottom: 4px;
-}
-
-.reason-text {
-  font-size: 13px;
-  color: var(--text-primary, #f1f5f9);
-  line-height: 1.5;
-  margin: 0;
-}
-
-.entity-reasons {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border-primary, rgba(148, 163, 184, 0.1));
-}
-
-.entity-reason-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.entity-name {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-primary, #f1f5f9);
-}
-
-.entity-reason-text {
-  font-size: 12px;
-  color: var(--text-secondary, #94a3b8);
-  line-height: 1.4;
-}
-</style>

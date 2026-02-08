@@ -1,4 +1,4 @@
-import { computed, ref } from 'vue'
+﻿import { computed, ref } from 'vue'
 import {
   getOpportunityRadarOverview,
   getOpportunityRadarSignals,
@@ -6,96 +6,32 @@ import {
   type OpportunityRadarEvent,
   type OpportunityRadarOverview,
 } from '@/api/opportunityRadar'
+import { TOP_EVENTS_INITIAL_VISIBLE, defaultOverview, lookbackDaysMap, windowHoursMap } from './opportunity-radar/constants'
+import { clamp, formatClock, toChangePercent, toSigned, truncateText } from './opportunity-radar/helpers'
+import type {
+  DirectionFilter,
+  FreshnessFilter,
+  MarketMetricView,
+  SignalCardView,
+  TimeWindowKey,
+  TopEventRowView,
+} from './opportunity-radar/types'
 
-export type TimeWindowKey = '1H' | '4H' | '1D'
-export type DirectionFilter = 'all' | 'opportunity' | 'risk'
-export type FreshnessFilter = 'all' | 'first' | 'relay'
-
-interface MarketMetricView {
-  label: string
-  value: string
-  valueClass: string
-  delta: number
-}
-
-interface SignalCardView {
-  total: number
-  title: string
-  time: string
-  content: string
-}
-
-interface TopEventRowView {
-  event: OpportunityRadarEvent
-  rank: string
-  title: string
-  summary: string
-  typeLabel: string
-  scoreText: string
-  scorePositive: boolean
-  tags: string[]
-}
-
-const TOP_EVENTS_INITIAL_VISIBLE = 5
-
-const windowHoursMap: Record<TimeWindowKey, number> = {
-  '1H': 1,
-  '4H': 4,
-  '1D': 24,
-}
-
-const lookbackDaysMap: Record<TimeWindowKey, number> = {
-  '1H': 7,
-  '4H': 14,
-  '1D': 30,
-}
-
-const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
-
-const defaultOverview: OpportunityRadarOverview = {
-  window_hours: 4,
-  sample_size: 0,
-  market_index: 0,
-  avg_confidence: 0,
-  opportunity_count: 0,
-  risk_count: 0,
-  neutral_count: 0,
-  updated_at: '',
-}
-
-function truncateText(text: string | null | undefined, maxLength: number): string {
-  const raw = (text || '').replace(/\s+/g, ' ').trim()
-  if (!raw) return '--'
-  if (raw.length <= maxLength) return raw
-  return `${raw.slice(0, maxLength)}...`
-}
-
-function toSigned(value: number, digits = 1): string {
-  const fixed = Math.abs(value).toFixed(digits)
-  return `${value >= 0 ? '+' : '-'}${fixed}`
-}
-
-function toChangePercent(current: number, prev: number | null): number {
-  if (prev === null) return 0
-  if (Math.abs(prev) < 1e-6) return clamp(current * 100, -99.9, 99.9)
-  return clamp(((current - prev) / Math.abs(prev)) * 100, -99.9, 99.9)
-}
+export type {
+  DirectionFilter,
+  FreshnessFilter,
+  MarketMetricView,
+  SignalCardView,
+  TimeWindowKey,
+  TopEventRowView,
+} from './opportunity-radar/types'
 
 function trendLabel(marketIndex: number): string {
   if (marketIndex >= 40) return '极度乐观'
   if (marketIndex >= 15) return '理性乐观'
-  if (marketIndex > -15) return '中性观察'
+  if (marketIndex > -15) return '中性观望'
   if (marketIndex > -40) return '理性谨慎'
   return '风险规避'
-}
-
-function formatClock(value: string | null | undefined): string {
-  if (!value) return '--:--'
-  const d = new Date(value)
-  if (Number.isNaN(d.getTime())) return '--:--'
-  const hh = String(d.getHours()).padStart(2, '0')
-  const mm = String(d.getMinutes()).padStart(2, '0')
-  return `${hh}:${mm}`
 }
 
 export function useOpportunityRadar() {
@@ -154,7 +90,7 @@ export function useOpportunityRadar() {
       Math.abs(Number(previousOverview.value.market_index || 0)) * 0.7 +
       Number(previousOverview.value.avg_confidence || 0) * 0.3,
       0,
-      100
+      100,
     )
     return toChangePercent(impact.value, prevImpact)
   })

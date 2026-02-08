@@ -19,6 +19,7 @@ from app.models import EventCreate, EventCategory, EventType
 from app.services.database_service import db_service
 from app.core.database import connect_to_mongo, close_mongo_connection
 from app.services.pdf_service import pdf_service
+from spider.update.sync_stock_master import sync_stock_master
 
 # 导入三大交易所爬虫
 from spider.common.sse_notice_fetcher import SSENoticeFetcher
@@ -614,6 +615,9 @@ async def main():
     await connect_to_mongo()
     
     try:
+        print("Syncing stock master (code/name) before event monitor starts...")
+        await sync_stock_master()
+
         # 并发运行两个监控任务
         await asyncio.gather(
             updater.monitor_exchanges(),
