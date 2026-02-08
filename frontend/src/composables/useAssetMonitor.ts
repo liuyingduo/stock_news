@@ -41,6 +41,9 @@ export type {
 } from './asset-monitor/types'
 
 export function useAssetMonitor() {
+  const DEFAULT_WATCH_STOCK_CODE = '002594'
+  const DEFAULT_WATCH_STOCK_NAME = '比亚迪'
+
   const activeTab = ref<'logic' | 'relation'>('logic')
   const activeInterval = ref<IntervalKey>('1H')
   const activeStockCode = ref('')
@@ -222,6 +225,38 @@ export function useAssetMonitor() {
     }
   }
 
+  async function ensureDefaultWatchlist(nextWatchlist: WatchItem[]): Promise<WatchItem[]> {
+    if (nextWatchlist.length > 0) return nextWatchlist
+
+    try {
+      const stocks = unwrapApiResult<Stock[]>(await addStockToMyWatchlist(DEFAULT_WATCH_STOCK_CODE))
+      const mapped = mapStockList(stocks)
+      if (mapped.length > 0) {
+        emitWatchlistUpdated()
+        return mapped
+      }
+    } catch (error) {
+      console.error('自动添加默认监控股票失败:', error)
+    }
+
+    const known = allStocks.value.find((item) => item.code === DEFAULT_WATCH_STOCK_CODE)
+    if (known) return [known]
+
+    try {
+      const stock = unwrapApiResult<Stock>(await getStockByCode(DEFAULT_WATCH_STOCK_CODE))
+      const mapped = mapStock(stock)
+      if (mapped) return [mapped]
+    } catch (error) {
+      console.error('获取默认监控股票信息失败:', error)
+    }
+
+    return [{
+      code: DEFAULT_WATCH_STOCK_CODE,
+      name: DEFAULT_WATCH_STOCK_NAME,
+      displayCode: `${DEFAULT_WATCH_STOCK_CODE}.SZ`,
+    }]
+  }
+
   async function loadStocks() {
     try {
       const stocks = unwrapApiResult<Stock[]>(await getStocks())
@@ -235,7 +270,8 @@ export function useAssetMonitor() {
   async function loadWatchlist() {
     try {
       const stocks = unwrapApiResult<Stock[]>(await getMyWatchlist())
-      applyWatchlist(mapStockList(stocks))
+      const mapped = mapStockList(stocks)
+      applyWatchlist(await ensureDefaultWatchlist(mapped))
     } catch (error) {
       console.error('加载监控列表失败:', error)
       applyWatchlist([])

@@ -192,7 +192,6 @@
             :class="getCardHighlightClass(event)"
             @click="goToEvent(event.id)"
           >
-            <div class="absolute top-0 left-0 w-1 h-full" :class="getSignalBarClass(event)"></div>
             <div class="p-5 flex flex-col gap-3 h-full">
               <div class="flex justify-between items-center w-full">
                 <div class="flex flex-wrap items-center gap-2 text-xs">
@@ -290,7 +289,6 @@ const {
   formatConfidence,
   formatSignal,
   getSignalTextClass,
-  getSignalBarClass,
   getCardHighlightClass,
   goToEvent,
   init,

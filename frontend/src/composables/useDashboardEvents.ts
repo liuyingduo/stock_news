@@ -200,14 +200,6 @@ export function useDashboardEvents() {
     return signal >= 0 ? 'text-signal-bullish text-glow-bullish' : 'text-signal-bearish text-glow-bearish'
   }
 
-  const getSignalBarClass = (event: Event) => {
-    const signal = event.ai_analysis?.sentiment_score
-    if (signal === undefined || signal === null) return 'bg-gray-600'
-    return signal >= 0
-      ? 'bg-signal-bullish shadow-[0_0_10px_rgba(255,51,51,0.6)]'
-      : 'bg-signal-bearish shadow-[0_0_10px_rgba(0,230,118,0.4)]'
-  }
-
   const getCardHighlightClass = (event: Event) => {
     const impact = event.ai_analysis?.impact_score
     if (impact !== undefined && impact !== null && impact >= 0.85) {
@@ -253,7 +245,6 @@ export function useDashboardEvents() {
     formatConfidence,
     formatSignal,
     getSignalTextClass,
-    getSignalBarClass,
     getCardHighlightClass,
     goToEvent,
     init,

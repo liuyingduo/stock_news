@@ -11,6 +11,7 @@ import { clamp, formatClock, toChangePercent, toSigned, truncateText } from './o
 import type {
   DirectionFilter,
   FreshnessFilter,
+  MarketTopItemView,
   MarketMetricView,
   SignalCardView,
   TimeWindowKey,
@@ -20,6 +21,7 @@ import type {
 export type {
   DirectionFilter,
   FreshnessFilter,
+  MarketTopItemView,
   MarketMetricView,
   SignalCardView,
   TimeWindowKey,
@@ -224,6 +226,57 @@ export function useOpportunityRadar() {
     return toSignalCard(filteredRiskEvents.value, enabled)
   })
 
+  const marketTopFive = computed<MarketTopItemView[]>(() => {
+    const sourceEvents = topEventsFiltered.value.length > 0
+      ? topEventsFiltered.value
+      : topEventsRaw.value
+
+    const aggregate = new Map<string, { total: number; count: number }>()
+
+    for (const event of sourceEvents) {
+      const entities = event.affected_stock_codes.length > 0
+        ? event.affected_stock_codes
+        : event.affected_sector_codes
+
+      if (entities.length === 0) continue
+
+      const uniqueEntities = Array.from(new Set(entities)).slice(0, 3)
+      const sentimentRaw = Number(event.sentiment_score ?? 0)
+      const directionSign = event.direction === 'risk' ? -1 : 1
+      const signedSentiment = Math.abs(sentimentRaw) < 1e-6
+        ? directionSign * 0.5
+        : clamp(sentimentRaw, -1, 1)
+      const confidence = clamp(Number(event.confidence_score ?? 0.7), 0, 1)
+      const relevance = clamp(Number(event.relevance_score ?? 0), 0, 100)
+      const eventScore = clamp(signedSentiment * (0.7 * relevance + 30 * confidence), -100, 100)
+
+      for (const entity of uniqueEntities) {
+        const key = entity || '--'
+        const prev = aggregate.get(key)
+        if (prev) {
+          prev.total += eventScore
+          prev.count += 1
+        } else {
+          aggregate.set(key, { total: eventScore, count: 1 })
+        }
+      }
+    }
+
+    return Array.from(aggregate.entries())
+      .map(([label, value]) => {
+        const score = value.count > 0 ? value.total / value.count : 0
+        return { label, score }
+      })
+      .sort((a, b) => Math.abs(b.score) - Math.abs(a.score))
+      .slice(0, 5)
+      .map((item, index) => ({
+        rank: index + 1,
+        label: item.label,
+        score: item.score,
+        scoreText: toSigned(item.score, 1),
+      }))
+  })
+
   const topEventRows = computed<TopEventRowView[]>(() => {
     return displayedTopEvents.value.map((event, index) => {
       const scorePositive = (event.sentiment_score ?? 0) >= 0
@@ -348,6 +401,7 @@ export function useOpportunityRadar() {
     topEventsExpanded,
     marketView,
     marketMetrics,
+    marketTopFive,
     opportunityCard,
     riskCard,
     topEventRows,

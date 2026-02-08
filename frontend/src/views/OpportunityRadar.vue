@@ -90,6 +90,28 @@
             </label>
           </div>
         </div>
+
+        <div class="space-y-3 pt-6 border-t border-white/10 mt-6 lg:mt-8">
+          <div class="hidden lg:flex px-3 items-center justify-between">
+            <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider font-mono">市场先生指数 TOP 5</h3>
+          </div>
+          <div class="space-y-0.5 font-mono text-sm hidden lg:block">
+            <div
+              v-for="item in marketTopFive"
+              :key="item.label"
+              class="flex items-center justify-between px-3 py-2 rounded hover:bg-white/5 transition-colors cursor-pointer group"
+            >
+              <div class="flex items-center gap-3 min-w-0">
+                <span class="font-bold w-3 shrink-0" :class="item.rank <= 3 ? 'text-logic-gold' : 'text-gray-500'">{{ item.rank }}</span>
+                <span class="text-gray-300 group-hover:text-white transition-colors truncate">{{ item.label }}</span>
+              </div>
+              <span class="font-bold shrink-0" :class="item.score >= 0 ? 'text-market-up' : 'text-market-down'">{{ item.scoreText }}</span>
+            </div>
+            <div v-if="marketTopFive.length === 0" class="px-3 py-2 text-xs text-gray-500">
+              暂无可用数据
+            </div>
+          </div>
+        </div>
       </div>
     </aside>
 
@@ -250,6 +272,7 @@ const {
   topEventsExpanded,
   marketView,
   marketMetrics,
+  marketTopFive,
   opportunityCard,
   riskCard,
   topEventRows,

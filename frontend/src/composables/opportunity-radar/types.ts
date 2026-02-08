@@ -18,6 +18,13 @@ export interface SignalCardView {
   content: string
 }
 
+export interface MarketTopItemView {
+  rank: number
+  label: string
+  score: number
+  scoreText: string
+}
+
 export interface TopEventRowView {
   event: OpportunityRadarEvent
   rank: string
