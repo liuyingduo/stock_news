@@ -32,7 +32,7 @@ const route = useRoute()
 
 const navItems: NavItem[] = [
   { key: 'dashboard', label: '实时信息流', to: '/' },
-  { key: 'assets', label: '资产监控', disabled: true },
+  { key: 'assets', label: '资产监控', to: '/assets' },
   { key: 'opportunity', label: '机会雷达', to: '/opportunity-radar' },
   { key: 'pricing', label: '定价与权益', to: '/pricing-benefits' }
 ]
@@ -57,10 +57,10 @@ const variantClasses = computed(() => {
   }
 
   return {
-    container: 'hidden xl:flex items-center gap-8 h-full',
-    active: 'text-sm font-bold nav-active h-full flex items-center cursor-default',
-    inactive: 'text-sm font-medium text-gray-400 hover:text-white transition-colors h-full flex items-center',
-    disabled: 'text-sm font-medium text-gray-500 h-full flex items-center cursor-not-allowed'
+    container: 'hidden xl:flex items-center gap-8',
+    active: 'text-primary font-bold text-sm leading-normal border-b-2 border-primary pb-0.5 hover:text-primary/80 transition-colors',
+    inactive: 'text-gray-400 hover:text-white text-sm font-medium leading-normal transition-colors',
+    disabled: 'text-gray-500 text-sm font-medium leading-normal cursor-not-allowed'
   }
 })
 

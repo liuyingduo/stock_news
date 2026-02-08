@@ -25,6 +25,12 @@ const routes: RouteRecordRaw[] = [
     meta: { layout: 'default', title: '机会雷达', requiresAuth: true },
   },
   {
+    path: '/assets',
+    name: 'AssetMonitor',
+    component: () => import('../views/AssetMonitor.vue'),
+    meta: { layout: 'default', title: '资产监控', requiresAuth: true },
+  },
+  {
     path: '/profile',
     name: 'Profile',
     component: () => import('../views/Profile.vue'),

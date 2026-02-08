@@ -10,6 +10,13 @@ export default {
             colors: {
                 "primary": "#D4AF37", // Brand Gold
                 "primary-hover": "#b5952f",
+                "bg-main": "#0B0F15", // Inkstone Black
+                "bg-card": "#161B22", // Slightly lighter for cards
+                "market-red": "#F53F3F", // A-share rise (Standard)
+                "market-dark-red": "#9B1C1C", // Premium Dark Red for charts
+                "market-green": "#00B42A", // A-share fall
+                "text-sub": "#9CA3AF",
+                "text-light": "#E2E8F0", // High contrast light gray
                 "accent-blue": "#1754cf",
                 "logic-gold": "#D4AF37",
                 "logic-gold-dim": "#63521a",
