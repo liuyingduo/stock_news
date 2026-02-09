@@ -342,12 +342,12 @@ class EventUpdater:
 
 
 
-    async def check_event_exists(self, title: str, announcement_date: datetime, stock_code: str = None) -> bool:
-        """检查事件是否已存在"""
+    async def check_event_exists(self, title: str, announcement_date: datetime) -> bool:
+        """按标题 + 公告日期检查事件是否已存在（忽略具体时分秒）。"""
         try:
-            existing = await db_service.get_event_by_title_date(title, announcement_date, stock_code)
+            existing = await db_service.get_event_by_title_date(title, announcement_date)
             return existing is not None
-        except:
+        except Exception:
             return False
 
     async def process_and_save_events(self, events_data: List[dict]) -> int:
@@ -371,7 +371,7 @@ class EventUpdater:
                 announcement_date = event_data.get("announcement_date", datetime.now())
 
                 # 检查是否已存在
-                if await self.check_event_exists(title, announcement_date, stock_code=event_data.get("stock_code")):
+                if await self.check_event_exists(title, announcement_date):
                     skipped_count += 1
                     continue
 
@@ -515,10 +515,8 @@ class EventUpdater:
                     for notice in notices:
                         title = notice.get("title", "")
                         notice_date = notice.get("announcement_date", date)
-                        stock_code = notice.get("stock_code")
-                        
                         # 检查数据库
-                        if await self.check_event_exists(title, notice_date, stock_code):
+                        if await self.check_event_exists(title, notice_date):
                             skipped_total += 1
                             continue
                             

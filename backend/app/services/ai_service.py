@@ -7,7 +7,12 @@ import time
 from datetime import datetime
 from typing import Any, Dict, List, Tuple
 
-import requests
+try:
+    from google import genai
+    from google.genai import errors as genai_errors
+except Exception:  # pragma: no cover - optional dependency at runtime
+    genai = None
+    genai_errors = None
 from zai import ZhipuAiClient
 
 from app.config import settings
@@ -45,6 +50,7 @@ ENTITY_CACHE_TTL_SECONDS = 30 * 60
 RATE_LIMIT_MAX_RETRIES = 8
 RATE_LIMIT_BASE_DELAY_SECONDS = 2.0
 RATE_LIMIT_MAX_DELAY_SECONDS = 60.0
+AI_ERROR_RESPONSE_PREVIEW_CHARS = 6000
 
 STOCK_CODE_REGEX = re.compile(r"(?<!\d)(?:SH|SZ|BJ)?(\d{6})(?:\.(?:SH|SZ|BJ))?(?!\d)", re.IGNORECASE)
 SECTOR_CODE_REGEX = re.compile(r"(?<!\d)(\d{6}\.SI)(?![\dA-Z])", re.IGNORECASE)
@@ -99,6 +105,7 @@ class AIService:
         self.model = str(getattr(settings, "ai_model", "glm-4.7")).strip()
         self.provider = self._resolve_provider()
         self.zhipu_client: ZhipuAiClient | None = None
+        self.gemini_client = None
 
         if self.provider == "glm":
             if not settings.zhipu_api_key or settings.zhipu_api_key == "your-api-key-here":
@@ -107,6 +114,9 @@ class AIService:
         elif self.provider == "gemini":
             if not getattr(settings, "gemini_api_key", ""):
                 raise ValueError("GEMINI_API_KEY is not configured")
+            if genai is None:
+                raise ValueError("google-genai is not installed. Run: uv add google-genai")
+            self.gemini_client = genai.Client(api_key=settings.gemini_api_key)
         else:
             raise ValueError(f"Unsupported AI provider: {self.provider}")
 
@@ -319,46 +329,37 @@ insider_trans, risk_crisis, litigation, info_change, ops_info, other
         return response.choices[0].message.content.strip()
 
     def _call_gemini_model(self, prompt: str) -> str:
-        api_key = str(getattr(settings, "gemini_api_key", "")).strip()
-        if not api_key:
-            raise AIProviderError("GEMINI_API_KEY is not configured")
+        if self.gemini_client is None:
+            raise AIProviderError("Gemini client is not initialized")
 
         model_name = GEMINI_MODEL_ALIASES.get(self.model, self.model)
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent"
-        headers = {"Content-Type": "application/json", "X-Goog-Api-Key": api_key}
-        payload = {
-            "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-            "generationConfig": {"temperature": 0.1, "maxOutputTokens": 1500},
-        }
-
         try:
-            response = requests.post(url, headers=headers, json=payload, timeout=120)
+            response = self.gemini_client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+            )
         except Exception as exc:
-            raise AIProviderError(f"Gemini request failed: {exc}") from exc
-
-        data: Dict[str, Any] = {}
-        try:
-            data = response.json()
-        except Exception:
-            data = {}
-
-        if response.status_code >= 400:
-            message = (
-                data.get("error", {}).get("message")
-                or response.text
-                or "unknown gemini api error"
-            )
+            status_code = None
+            if genai_errors is not None and isinstance(exc, genai_errors.APIError):
+                status_code = getattr(exc, "code", None)
             raise AIProviderError(
-                f"Gemini API error ({response.status_code}): {message}",
-                status_code=response.status_code,
-            )
+                f"Gemini request failed: {exc}",
+                status_code=status_code,
+            ) from exc
 
+        text = str(getattr(response, "text", "") or "").strip()
+        if text:
+            return text
+
+        candidates = getattr(response, "candidates", None) or []
         parts_text: List[str] = []
-        for candidate in data.get("candidates", []) or []:
-            content = candidate.get("content", {}) if isinstance(candidate, dict) else {}
-            for part in content.get("parts", []) or []:
-                if isinstance(part, dict) and part.get("text"):
-                    parts_text.append(str(part["text"]))
+        for candidate in candidates:
+            content = getattr(candidate, "content", None)
+            parts = getattr(content, "parts", None) or []
+            for part in parts:
+                part_text = getattr(part, "text", None)
+                if part_text:
+                    parts_text.append(str(part_text))
 
         text = "\n".join(parts_text).strip()
         if not text:
@@ -506,6 +507,27 @@ insider_trans, risk_crisis, litigation, info_change, ops_info, other
             "affected_materials": materials,
         }
 
+    def _print_analysis_error(self, exc: Exception, raw_text: str) -> None:
+        print(
+            f"AI analysis failed (provider={self.provider}, model={self.model}): {exc}"
+        )
+        if not raw_text:
+            print("AI raw response is empty.")
+            return
+
+        if len(raw_text) > AI_ERROR_RESPONSE_PREVIEW_CHARS:
+            preview = raw_text[:AI_ERROR_RESPONSE_PREVIEW_CHARS]
+            print(
+                f"AI raw response is too long ({len(raw_text)} chars), "
+                f"printing first {AI_ERROR_RESPONSE_PREVIEW_CHARS} chars:"
+            )
+            print(preview)
+            print("... [truncated]")
+            return
+
+        print("AI raw response:")
+        print(raw_text)
+
     async def analyze_and_classify(
         self,
         event_title: str,
@@ -524,6 +546,7 @@ insider_trans, risk_crisis, litigation, info_change, ops_info, other
             stock_candidates=stock_candidates,
             sector_candidates=sector_candidates,
         )
+        raw_text = ""
         try:
             raw_text = await self._call_model_with_retry(prompt)
             raw_json = _extract_json(raw_text)
@@ -546,6 +569,7 @@ insider_trans, risk_crisis, litigation, info_change, ops_info, other
                 "event_types": normalized["event_types"],
             }
         except Exception as exc:
+            self._print_analysis_error(exc, raw_text)
             # Keep pipeline moving on bad/empty model responses.
             return {
                 "ai_analysis": AIAnalysis(
