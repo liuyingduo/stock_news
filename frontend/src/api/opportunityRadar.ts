@@ -1,5 +1,10 @@
 import api from './index'
 
+export interface OpportunityRadarEntity {
+  code: string | null
+  name: string | null
+}
+
 export interface OpportunityRadarOverview {
   window_hours: number
   sample_size: number
@@ -22,8 +27,12 @@ export interface OpportunityRadarEvent {
   original_url: string | null
   impact_reason: string | null
   is_hype: boolean
+  affected_sectors: OpportunityRadarEntity[]
+  affected_stocks: OpportunityRadarEntity[]
   affected_sector_codes: string[]
+  affected_sector_names: string[]
   affected_stock_codes: string[]
+  affected_stock_names: string[]
   impact_score: number
   sentiment_score: number
   confidence_score: number

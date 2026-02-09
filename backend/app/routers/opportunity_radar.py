@@ -13,6 +13,20 @@ def _build_event_card(event: Dict[str, Any], now: datetime) -> Dict[str, Any]:
     ai = event.get("ai_analysis") or {}
     sectors = ai.get("affected_sectors") or []
     stocks = ai.get("affected_stocks") or []
+    affected_sectors = [
+        {"code": item.get("code"), "name": item.get("name")}
+        for item in sectors
+        if item.get("code") or item.get("name")
+    ]
+    affected_stocks = [
+        {"code": item.get("code"), "name": item.get("name")}
+        for item in stocks
+        if item.get("code") or item.get("name")
+    ]
+    affected_sector_codes = [item.get("code") for item in sectors if item.get("code")]
+    affected_stock_codes = [item.get("code") for item in stocks if item.get("code")]
+    affected_sector_names = [item.get("name") for item in sectors if item.get("name")]
+    affected_stock_names = [item.get("name") for item in stocks if item.get("name")]
     scores = compute_event_scores(event, now)
     return {
         "id": event.get("id"),
@@ -25,8 +39,12 @@ def _build_event_card(event: Dict[str, Any], now: datetime) -> Dict[str, Any]:
         "original_url": event.get("original_url"),
         "impact_reason": ai.get("impact_reason"),
         "is_hype": bool(ai.get("is_hype", False)),
-        "affected_sector_codes": [item.get("code") for item in sectors if item.get("code")],
-        "affected_stock_codes": [item.get("code") for item in stocks if item.get("code")],
+        "affected_sectors": affected_sectors,
+        "affected_stocks": affected_stocks,
+        "affected_sector_codes": affected_sector_codes,
+        "affected_stock_codes": affected_stock_codes,
+        "affected_sector_names": affected_sector_names,
+        "affected_stock_names": affected_stock_names,
         **scores,
     }
 

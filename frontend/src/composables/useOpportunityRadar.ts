@@ -18,6 +18,11 @@ import type {
   TopEventRowView,
 } from './opportunity-radar/types'
 
+interface RadarEntityDisplay {
+  key: string
+  label: string
+}
+
 export type {
   DirectionFilter,
   FreshnessFilter,
@@ -34,6 +39,54 @@ function trendLabel(marketIndex: number): string {
   if (marketIndex > -15) return '中性观望'
   if (marketIndex > -40) return '理性谨慎'
   return '风险规避'
+}
+
+function normalizeText(value: unknown): string {
+  if (typeof value !== 'string') return ''
+  return value.trim()
+}
+
+function dedupeEntityLabels(entities: RadarEntityDisplay[]): RadarEntityDisplay[] {
+  const used = new Set<string>()
+  const result: RadarEntityDisplay[] = []
+  for (const item of entities) {
+    if (!item.label || used.has(item.key)) continue
+    used.add(item.key)
+    result.push(item)
+  }
+  return result
+}
+
+function getStockEntities(event: OpportunityRadarEvent): RadarEntityDisplay[] {
+  const structured = (event.affected_stocks || [])
+    .map((item) => {
+      const code = normalizeText(item.code)
+      const name = normalizeText(item.name)
+      const label = name || code
+      const key = code || name
+      return key && label ? { key, label } : null
+    })
+    .filter((item): item is RadarEntityDisplay => Boolean(item))
+
+  if (structured.length > 0) {
+    return dedupeEntityLabels(structured)
+  }
+
+  const names = (event.affected_stock_names || []).map(normalizeText).filter(Boolean)
+  if (names.length > 0) {
+    return dedupeEntityLabels(names.map((name) => ({ key: name, label: name })))
+  }
+
+  const codes = (event.affected_stock_codes || []).map(normalizeText).filter(Boolean)
+  return dedupeEntityLabels(codes.map((code) => ({ key: code, label: code })))
+}
+
+function getSectorLabels(event: OpportunityRadarEvent): string[] {
+  const names = (event.affected_sector_names || []).map(normalizeText).filter(Boolean)
+  if (names.length > 0) return Array.from(new Set(names))
+
+  const codes = (event.affected_sector_codes || []).map(normalizeText).filter(Boolean)
+  return Array.from(new Set(codes))
 }
 
 export function useOpportunityRadar() {
@@ -231,16 +284,17 @@ export function useOpportunityRadar() {
       ? topEventsFiltered.value
       : topEventsRaw.value
 
-    const aggregate = new Map<string, { total: number; count: number }>()
+    const aggregate = new Map<string, { label: string; total: number; count: number }>()
 
     for (const event of sourceEvents) {
-      const entities = event.affected_stock_codes.length > 0
-        ? event.affected_stock_codes
-        : event.affected_sector_codes
+      const stockEntities = getStockEntities(event)
+      const entities = stockEntities.length > 0
+        ? stockEntities
+        : getSectorLabels(event).map((label) => ({ key: label, label }))
 
       if (entities.length === 0) continue
 
-      const uniqueEntities = Array.from(new Set(entities)).slice(0, 3)
+      const uniqueEntities = entities.slice(0, 3)
       const sentimentRaw = Number(event.sentiment_score ?? 0)
       const directionSign = event.direction === 'risk' ? -1 : 1
       const signedSentiment = Math.abs(sentimentRaw) < 1e-6
@@ -251,21 +305,22 @@ export function useOpportunityRadar() {
       const eventScore = clamp(signedSentiment * (0.7 * relevance + 30 * confidence), -100, 100)
 
       for (const entity of uniqueEntities) {
-        const key = entity || '--'
+        const key = entity.key || '--'
+        const label = entity.label || entity.key || '--'
         const prev = aggregate.get(key)
         if (prev) {
           prev.total += eventScore
           prev.count += 1
         } else {
-          aggregate.set(key, { total: eventScore, count: 1 })
+          aggregate.set(key, { label, total: eventScore, count: 1 })
         }
       }
     }
 
     return Array.from(aggregate.entries())
-      .map(([label, value]) => {
+      .map(([, value]) => {
         const score = value.count > 0 ? value.total / value.count : 0
-        return { label, score }
+        return { label: value.label, score }
       })
       .sort((a, b) => Math.abs(b.score) - Math.abs(a.score))
       .slice(0, 5)
@@ -280,11 +335,8 @@ export function useOpportunityRadar() {
   const topEventRows = computed<TopEventRowView[]>(() => {
     return displayedTopEvents.value.map((event, index) => {
       const scorePositive = (event.sentiment_score ?? 0) >= 0
-      const tags = (
-        event.affected_stock_codes.length > 0
-          ? event.affected_stock_codes
-          : event.affected_sector_codes
-      ).slice(0, 2)
+      const stockTags = getStockEntities(event).map((item) => item.label)
+      const tags = (stockTags.length > 0 ? stockTags : getSectorLabels(event)).slice(0, 2)
 
       return {
         event,
