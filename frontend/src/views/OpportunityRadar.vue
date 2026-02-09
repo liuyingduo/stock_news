@@ -4,7 +4,7 @@
       <div class="h-16 flex items-center justify-center lg:justify-start lg:px-6 border-b border-white/5 shrink-0">
         <div class="flex items-center gap-3">
           <div class="flex h-8 w-8 items-center justify-center rounded-full bg-logic-gold/10 border border-logic-gold/30 shadow-glow-gold shrink-0">
-            <span class="material-symbols-outlined text-logic-gold text-xl">language</span>
+            <span class="material-symbols-outlined text-logic-gold text-xl" style="font-variation-settings: 'FILL' 1, 'wght' 400;">travel_explore</span>
           </div>
           <span class="hidden lg:block text-base font-bold tracking-tight text-white font-sans">万古经纬</span>
         </div>

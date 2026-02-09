@@ -20,7 +20,7 @@ from app.services.database_service import db_service
 
 
 class EventAnalyzer:
-    def __init__(self, concurrency: int = 10):
+    def __init__(self, concurrency: int = 3):
         self.concurrency = max(1, concurrency)
         self.ai_service = None
         self.ok = 0
@@ -68,11 +68,6 @@ class EventAnalyzer:
             )
             await db_service.update_event(event["id"], update)
 
-            for sector in ai_analysis.affected_sectors or []:
-                await db_service.create_or_update_sector(
-                    name=sector.name,
-                    code=sector.code or f"SECTOR_{sector.name}",
-                )
             for stock in ai_analysis.affected_stocks or []:
                 await db_service.create_or_update_stock(
                     name=stock.name,
@@ -138,7 +133,7 @@ async def _main() -> None:
         choices=["global_macro", "policy", "industry", "company"],
     )
     parser.add_argument("--event-type", type=str, default=None)
-    parser.add_argument("--concurrency", "-c", type=int, default=10)
+    parser.add_argument("--concurrency", "-c", type=int, default=3)
     parser.add_argument("--force", action="store_true", help="reanalyze even when ai_analysis exists")
     args = parser.parse_args()
 

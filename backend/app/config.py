@@ -9,9 +9,17 @@ class Settings(BaseSettings):
     mongodb_url: str = "mongodb://localhost:27017"
     database_name: str = "stock_news"
 
-    # Zhipu AI
+    # AI Provider
+    ai_provider: str = "auto"  # auto | glm | gemini
+
+    # GLM (Zhipu)
     zhipu_api_key: str = ""
-    ai_model: str = "glm-4.7-flash"
+
+    # Gemini
+    gemini_api_key: str = ""
+
+    # Shared model name, e.g. glm-4.7 / gemini-3-pro
+    ai_model: str = "gemini-3-pro"
 
     # API
     api_host: str = "0.0.0.0"

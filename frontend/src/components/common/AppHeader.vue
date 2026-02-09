@@ -2,7 +2,7 @@
   <header :class="headerClass">
     <div class="flex items-center gap-4 text-white">
       <div :class="brandIconClass">
-        <span class="material-symbols-outlined" :class="brandIconSize">language</span>
+        <span class="material-symbols-outlined" :class="brandIconSize" style="font-variation-settings: 'FILL' 1, 'wght' 400;">travel_explore</span>
       </div>
       <h2 class="font-display font-bold tracking-tight text-white" :class="brandTextClass">万古经纬</h2>
     </div>

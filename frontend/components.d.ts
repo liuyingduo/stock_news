@@ -14,9 +14,6 @@ declare module 'vue' {
     AssetMonitorSidebar: typeof import('./src/components/asset-monitor/AssetMonitorSidebar.vue')['default']
     AssetMonitorTopPanel: typeof import('./src/components/asset-monitor/AssetMonitorTopPanel.vue')['default']
     CircularProgress: typeof import('./src/components/ecoSignal/CircularProgress.vue')['default']
-    ElButton: typeof import('element-plus/es')['ElButton']
-    ElEmpty: typeof import('element-plus/es')['ElEmpty']
-    ElTag: typeof import('element-plus/es')['ElTag']
     EventCard: typeof import('./src/components/EventCard.vue')['default']
     InfiniteScroll: typeof import('./src/components/common/InfiniteScroll.vue')['default']
     MainNav: typeof import('./src/components/common/MainNav.vue')['default']
@@ -25,8 +22,5 @@ declare module 'vue' {
     RouterView: typeof import('vue-router')['RouterView']
     SentimentGauge: typeof import('./src/components/ecoSignal/SentimentGauge.vue')['default']
     SignalCard: typeof import('./src/components/ecoSignal/SignalCard.vue')['default']
-  }
-  export interface ComponentCustomProperties {
-    vLoading: typeof import('element-plus/es')['ElLoadingDirective']
   }
 }

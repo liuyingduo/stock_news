@@ -11,12 +11,6 @@ router = APIRouter(prefix="/api/events", tags=["events"])
 
 
 async def _persist_related_entities(ai_analysis) -> None:
-    if ai_analysis.affected_sectors:
-        for sector in ai_analysis.affected_sectors:
-            await db_service.create_or_update_sector(
-                name=sector.name,
-                code=sector.code or f"SECTOR_{sector.name}",
-            )
     if ai_analysis.affected_stocks:
         for stock in ai_analysis.affected_stocks:
             await db_service.create_or_update_stock(

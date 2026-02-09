@@ -40,6 +40,14 @@ class DatabaseService:
         # 股票集合索引
         await self._get_db().stocks.create_index("code", unique=True)
         await self._get_db().stocks.create_index("name")
+        await self._get_db().cn_stock_industry_component.create_index(
+            [("instrument", 1), ("industry_level3_code", 1)],
+            unique=True,
+        )
+        await self._get_db().cn_stock_industry_component.create_index("industry_level1_code")
+        await self._get_db().cn_stock_industry_component.create_index("industry_level2_code")
+        await self._get_db().cn_stock_industry_component.create_index("industry_level3_code")
+        await self._get_db().cn_stock_industry_component.create_index("date")
 
         print("Database indexes created successfully")
 
@@ -362,6 +370,95 @@ class DatabaseService:
             return {"deleted": delete_result.deleted_count, "inserted": 0}
 
         result = await stocks_collection.insert_many(documents, ordered=False)
+        return {"deleted": delete_result.deleted_count, "inserted": len(result.inserted_ids)}
+
+    async def replace_all_sectors(self, sectors_data: List[Dict[str, Any]]) -> Dict[str, int]:
+        """
+        Replace sectors collection with latest full snapshot.
+        """
+        sectors_collection = self._get_db().sectors
+        delete_result = await sectors_collection.delete_many({})
+
+        if not sectors_data:
+            return {"deleted": delete_result.deleted_count, "inserted": 0}
+
+        now = datetime.utcnow()
+        deduped_by_code: Dict[str, Dict[str, Any]] = {}
+
+        for item in sectors_data:
+            code = str(item.get("code", "")).strip()
+            name = str(item.get("name", "")).strip()
+            if not code or not name:
+                continue
+
+            deduped_by_code[code] = {
+                "name": name,
+                "code": code,
+                "risk_level": item.get("risk_level", "neutral"),
+                "description": item.get("description"),
+                "related_event_ids": item.get("related_event_ids", []),
+                "industry_level": item.get("industry_level", 3),
+                "industry_level1_code": item.get("industry_level1_code"),
+                "industry_level1_name": item.get("industry_level1_name"),
+                "industry_level2_code": item.get("industry_level2_code"),
+                "industry_level2_name": item.get("industry_level2_name"),
+                "industry_level3_code": item.get("industry_level3_code"),
+                "industry_level3_name": item.get("industry_level3_name"),
+                "source": item.get("source", "sw_akshare"),
+                "created_at": now,
+                "updated_at": now,
+            }
+
+        documents = list(deduped_by_code.values())
+        if not documents:
+            return {"deleted": delete_result.deleted_count, "inserted": 0}
+
+        result = await sectors_collection.insert_many(documents, ordered=False)
+        return {"deleted": delete_result.deleted_count, "inserted": len(result.inserted_ids)}
+
+    async def replace_all_sector_stock_components(
+        self,
+        mappings_data: List[Dict[str, Any]],
+        collection_name: str = "cn_stock_industry_component",
+    ) -> Dict[str, int]:
+        """
+        Replace sector-stock mapping collection with latest full snapshot.
+        """
+        mapping_collection = self._get_db()[collection_name]
+        delete_result = await mapping_collection.delete_many({})
+
+        if not mappings_data:
+            return {"deleted": delete_result.deleted_count, "inserted": 0}
+
+        now = datetime.utcnow()
+        deduped: Dict[str, Dict[str, Any]] = {}
+
+        for item in mappings_data:
+            instrument = str(item.get("instrument", "")).strip()
+            level3_code = str(item.get("industry_level3_code", "")).strip()
+            if not instrument or not level3_code:
+                continue
+
+            key = f"{instrument}::{level3_code}"
+            deduped[key] = {
+                "instrument": instrument,
+                "name": str(item.get("name", "")).strip(),
+                "industry_level1_code": item.get("industry_level1_code"),
+                "industry_level1_name": item.get("industry_level1_name"),
+                "industry_level2_code": item.get("industry_level2_code"),
+                "industry_level2_name": item.get("industry_level2_name"),
+                "industry_level3_code": level3_code,
+                "industry_level3_name": item.get("industry_level3_name"),
+                "date": item.get("date"),
+                "created_at": now,
+                "updated_at": now,
+            }
+
+        documents = list(deduped.values())
+        if not documents:
+            return {"deleted": delete_result.deleted_count, "inserted": 0}
+
+        result = await mapping_collection.insert_many(documents, ordered=False)
         return {"deleted": delete_result.deleted_count, "inserted": len(result.inserted_ids)}
 
     # ===== 统计相关操作 =====

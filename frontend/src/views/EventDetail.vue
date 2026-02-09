@@ -12,7 +12,7 @@
       <div class="h-6 w-px bg-border-dark"></div>
       <div class="flex items-center gap-3">
         <div class="flex size-6 items-center justify-center text-primary shadow-glow-primary">
-          <span class="material-symbols-outlined text-xl">language</span>
+          <span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1, 'wght' 400;">travel_explore</span>
         </div>
         <h1 class="font-display text-base font-bold tracking-tight text-white">
           万古经纬 <span class="mx-2 font-normal text-gray-500">/</span> 情报详情

@@ -20,6 +20,7 @@ from app.services.database_service import db_service
 from app.core.database import connect_to_mongo, close_mongo_connection
 from app.services.pdf_service import pdf_service
 from spider.update.sync_stock_master import sync_stock_master
+from spider.update.sync_sw_industry import sync_sw_industry_data
 
 # 导入三大交易所爬虫
 from spider.common.sse_notice_fetcher import SSENoticeFetcher
@@ -615,6 +616,9 @@ async def main():
     await connect_to_mongo()
     
     try:
+        print("Syncing SW sectors and sector-stock mappings before event monitor starts...")
+        await sync_sw_industry_data()
+
         print("Syncing stock master (code/name) before event monitor starts...")
         await sync_stock_master()
 
